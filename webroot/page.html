@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta charset="UTF-8" />
+    <title>Web View Example</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="loading">Loading...</div>
+    <div id="instructions" class="hidden">
+      <button id="hideInstructions">✕</button>
+      <h3>Controls:</h3>
+      <p>🖱️ Right Click + Drag: Rotate camera</p>
+      <p>🖱️ Middle Click + Drag: Pan camera</p>
+      <p>🖱️ Scroll: Zoom in/out</p>
+    </div>
+    <button id="toggleInstructions">Show Controls</button>
+    <pre id="messageOutput"></pre>
+
+    <script type="module" src="index.js"></script>
+    <script src="instructionsPanel.js"></script>
+  </body>
+</html>
