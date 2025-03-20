@@ -10,11 +10,13 @@ export class GameState {
 
   addCube(position, cube) {
     const key = `${position.x},${position.y},${position.z}`;
-    if (this.cubes.has(key)) {
-      // Remove existing cube from scene
-      const existingCube = this.cubes.get(key);
+    const existingCube = this.cubes.get(key);
+
+    // Only try to remove if the cube exists and has a parent
+    if (existingCube && existingCube.parent) {
       existingCube.parent.remove(existingCube);
     }
+
     this.cubes.set(key, cube);
   }
 

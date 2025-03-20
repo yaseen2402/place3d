@@ -7,5 +7,6 @@ export const COLORS = {
   BLACK: "#000000",
 };
 
-export const GRID_SIZE = 50;
+export const GRID_SIZE = 30;
 export const CUBE_SIZE = 1;
+export const GRID_OFFSET = 14.5; // Half of 30 minus 0.5 for center alignment

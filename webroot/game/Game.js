@@ -1,6 +1,6 @@
 import * as THREE from "../three/three.module.js";
 import { OrbitControls } from "../three/controls/OrbitControls.js";
-import { COLORS, GRID_SIZE, CUBE_SIZE } from "./constants.js";
+import { COLORS, GRID_SIZE, CUBE_SIZE, GRID_OFFSET } from "./constants.js";
 import { CubeBuilder } from "./CubeBuilder.js";
 import { Grid } from "./Grid.js";
 import { GameState } from "./GameState.js";
@@ -37,8 +37,8 @@ export class Game {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.container.appendChild(this.renderer.domElement);
 
-    // Setup camera
-    this.camera.position.set(GRID_SIZE, GRID_SIZE, GRID_SIZE);
+    // Adjust camera position for 30x30 grid
+    this.camera.position.set(GRID_SIZE * 0.6, GRID_SIZE * 0.6, GRID_SIZE * 0.6);
     this.camera.lookAt(0, 0, 0);
 
     // Add grid to scene
@@ -64,6 +64,14 @@ export class Game {
     this.controls.minDistance = 10;
     this.controls.maxDistance = 100;
     this.controls.rotateSpeed = 1.5;
+    this.controls.panSpeed = 2.0;
+
+    // Swap mouse buttons
+    this.controls.mouseButtons = {
+      RIGHT: 0, // Make right click rotate (0 is the primary rotation button)
+      LEFT: 2, // Make left click pan (2 is the primary pan button)
+      MIDDLE: 1, // Keep middle button as is
+    };
   }
 
   setupEventListeners() {
@@ -85,22 +93,43 @@ export class Game {
   setSelectedColor(color) {
     this.gameState.setSelectedColor(color);
 
-    if (this.previewCube) {
-      this.scene.remove(this.previewCube);
+    if (!this.previewCube) {
+      // Create preview cube if it doesn't exist
+      this.previewCube = this.cubeBuilder.createCube(color);
+      this.previewCube.material = this.previewCube.material.clone();
+      this.previewCube.material.opacity = 0.5;
+      this.previewCube.material.transparent = true;
+      this.scene.add(this.previewCube);
     }
 
-    this.previewCube = this.cubeBuilder.createCube(color);
-    this.previewCube.material = this.previewCube.material.clone();
-    this.previewCube.material.opacity = 0.5;
-    this.previewCube.material.transparent = true;
-    this.scene.add(this.previewCube);
-    this.updatePreviewPosition(-24.5, 0, -24.5); // Default position
+    // Add a subtle scale animation when changing colors
+    this.previewCube.scale.set(0.9, 0.9, 0.9);
+    setTimeout(() => {
+      this.previewCube.scale.set(1, 1, 1);
+    }, 150);
+
+    // Update the preview cube color with a smooth transition
+    const oldMaterial = this.previewCube.material;
+    const newMaterial = this.cubeBuilder.createCube(color).material.clone();
+    newMaterial.opacity = 0.5;
+    newMaterial.transparent = true;
+    this.previewCube.material = newMaterial;
+    oldMaterial.dispose();
   }
 
   updatePreviewPosition(x, y, z) {
-    if (this.previewCube) {
-      this.previewCube.position.set(x, y, z);
+    if (!this.previewCube) {
+      this.previewCube = this.cubeBuilder.createCube(
+        this.gameState.selectedColor
+      );
+      this.previewCube.material = this.previewCube.material.clone();
+      this.previewCube.material.opacity = 0.5;
+      this.previewCube.material.transparent = true;
+      this.scene.add(this.previewCube);
     }
+
+    // Direct position update instead of lerp
+    this.previewCube.position.set(x, y, z);
   }
 
   loadExistingCubes(cubes) {
@@ -117,9 +146,9 @@ export class Game {
 
         const cube = this.cubeBuilder.createCube(cubeData.color);
         const position = {
-          x: parseInt(cubeData.x) - 1 - 24.5,
-          y: parseInt(cubeData.y) - 1,
-          z: parseInt(cubeData.z) - 1 - 24.5,
+          x: parseInt(cubeData.x) - 1 - GRID_OFFSET,
+          y: parseInt(cubeData.y) - 1 + 0.5,
+          z: parseInt(cubeData.z) - 1 - GRID_OFFSET,
         };
 
         console.log("Placing cube at position:", position);
@@ -138,28 +167,36 @@ export class Game {
   }
 
   placeCubeAt(x, y, z) {
-    if (!this.previewCube) {
-      console.log("No preview cube to place");
-      return;
-    }
-
-    const position = new THREE.Vector3(x, y, z);
-    console.log("Placing cube at game position:", position);
-
+    // Add placement animation
     const cube = this.cubeBuilder.createCube(this.gameState.selectedColor);
-    cube.position.copy(position);
+    cube.position.set(x, y, z);
+    cube.scale.set(0, 0, 0);
     this.scene.add(cube);
-    this.gameState.addCube(position, cube);
 
-    // Convert coordinates back to 1-50 range for storage
-    const storageX = Math.round(x + 24.5) + 1;
-    const storageY = Math.round(y) + 1;
-    const storageZ = Math.round(z + 24.5) + 1;
+    // Animate the cube scaling up
+    const targetScale = 1;
+    const duration = 300; // milliseconds
+    const startTime = Date.now();
 
+    const animate = () => {
+      const progress = (Date.now() - startTime) / duration;
+      if (progress < 1) {
+        const scale = targetScale * Math.min(1, progress);
+        cube.scale.set(scale, scale, scale);
+        requestAnimationFrame(animate);
+      } else {
+        cube.scale.set(targetScale, targetScale, targetScale);
+      }
+    };
+
+    animate();
+    this.gameState.addCube(cube.position, cube);
+
+    // Convert coordinates back to 1-30 range for storage
     const storageData = {
-      x: storageX,
-      y: storageY,
-      z: storageZ,
+      x: Math.round(x + GRID_OFFSET) + 1,
+      y: Math.round(y - 0.5) + 1,
+      z: Math.round(z + GRID_OFFSET) + 1,
       color: this.gameState.selectedColor,
     };
 

@@ -79,3 +79,36 @@ body {
 #hideInstructions:hover {
   color: #000;
 }
+
+#notificationContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  max-height: 80vh;
+  pointer-events: none;
+}
+
+.cubeNotification {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px;
+  border-radius: 8px;
+  font-family: Arial, sans-serif;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  max-width: 250px;
+  opacity: 1;
+  pointer-events: auto;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-left: auto; /* Align to right */
+  transform-origin: right; /* Add this to ensure transform happens from right side */
+}
+
+.cubeNotification.fade-out {
+  opacity: 0;
+  transform: translateX(100%);
+}
