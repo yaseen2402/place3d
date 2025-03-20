@@ -6,8 +6,9 @@ import { Grid } from "./Grid.js";
 import { GameState } from "./GameState.js";
 
 export class Game {
-  constructor(container) {
+  constructor(container, onCubePlaced) {
     this.container = container;
+    this.onCubePlaced = onCubePlaced; // Callback for when a cube is placed
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
       75,
@@ -102,13 +103,70 @@ export class Game {
     }
   }
 
+  loadExistingCubes(cubes) {
+    if (!cubes) {
+      console.log("No existing cubes to load");
+      return;
+    }
+
+    console.log("Loading existing cubes:", cubes);
+    Object.values(cubes).forEach((cubeDataStr) => {
+      try {
+        const cubeData = JSON.parse(cubeDataStr);
+        console.log("Parsing cube data:", cubeData);
+
+        const cube = this.cubeBuilder.createCube(cubeData.color);
+        const position = {
+          x: parseInt(cubeData.x) - 1 - 24.5,
+          y: parseInt(cubeData.y) - 1,
+          z: parseInt(cubeData.z) - 1 - 24.5,
+        };
+
+        console.log("Placing cube at position:", position);
+        cube.position.set(position.x, position.y, position.z);
+        this.scene.add(cube);
+        this.gameState.addCube(cube.position, cube);
+      } catch (error) {
+        console.error(
+          "Error parsing cube data:",
+          error,
+          "Raw data:",
+          cubeDataStr
+        );
+      }
+    });
+  }
+
   placeCubeAt(x, y, z) {
-    if (!this.previewCube) return;
+    if (!this.previewCube) {
+      console.log("No preview cube to place");
+      return;
+    }
 
     const position = new THREE.Vector3(x, y, z);
+    console.log("Placing cube at game position:", position);
+
     const cube = this.cubeBuilder.createCube(this.gameState.selectedColor);
     cube.position.copy(position);
     this.scene.add(cube);
     this.gameState.addCube(position, cube);
+
+    // Convert coordinates back to 1-50 range for storage
+    const storageX = Math.round(x + 24.5) + 1;
+    const storageY = Math.round(y) + 1;
+    const storageZ = Math.round(z + 24.5) + 1;
+
+    const storageData = {
+      x: storageX,
+      y: storageY,
+      z: storageZ,
+      color: this.gameState.selectedColor,
+    };
+
+    console.log("Converting to storage coordinates:", storageData);
+
+    if (this.onCubePlaced) {
+      this.onCubePlaced(storageData);
+    }
   }
 }

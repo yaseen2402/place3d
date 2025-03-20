@@ -1,6 +1,6 @@
 import './createPost.js';
 
-import { Devvit, useState, useWebView } from '@devvit/public-api';
+import { Devvit, useState, useAsync, useWebView } from '@devvit/public-api';
 
 import type { DevvitMessage, WebViewMessage } from './message.js';
 
@@ -8,6 +8,17 @@ Devvit.configure({
   redditAPI: true,
   redis: true,
 });
+
+interface CubeData {
+  x: number;
+  y: number;
+  z: number;
+  color: string;
+  username: string;
+}
+
+// Key for the Redis hash that stores all cubes
+const CUBES_HASH_KEY = 'game_cubes';
 
 // Add a custom post type to Devvit
 Devvit.addCustomPostType({
@@ -19,11 +30,15 @@ Devvit.addCustomPostType({
       return (await context.reddit.getCurrentUsername()) ?? 'anon';
     });
 
-    // Load latest counter from redis with `useAsync` hook
-    const [counter, setCounter] = useState(async () => {
-      const redisCount = await context.redis.get(`counter_${context.postId}`);
-      return Number(redisCount ?? 0);
-    });
+
+    // const [cubes] = useState(async () => {
+    //   return (await context.redis.hGetAll(CUBES_HASH_KEY) ?? []);
+    // });
+
+    const { data: cubes, loading: cubesLoading } = useAsync(
+      async () => await context.redis.hGetAll(CUBES_HASH_KEY) ?? []
+    );
+
 
     const webView = useWebView<WebViewMessage, DevvitMessage>({
       // URL of your web view content
@@ -33,25 +48,31 @@ Devvit.addCustomPostType({
       async onMessage(message, webView) {
         switch (message.type) {
           case 'webViewReady':
-            webView.postMessage({
-              type: 'initialData',
-              data: {
-                username: username,
-                currentCounter: counter,
-              },
-            });
+
+            if (!cubesLoading) {
+              webView.postMessage({
+                type: 'initialData',
+                data: {
+                  username: username,
+                  cubes: cubes
+                },
+              });
+            }
+
             break;
-          case 'setCounter':
-            await context.redis.set(
-              `counter_${context.postId}`,
-              message.data.newCounter.toString()
-            );
-            setCounter(message.data.newCounter);
+          case 'saveCubes':
+            console.log("Saving cubes:", message.data);
+            const cubeId = `${message.data.x}_${message.data.y}_${message.data.z}`;
+  
+            // Store the cube data as JSON in the Redis hash
+            await context.redis.hSet(CUBES_HASH_KEY, {
+              [cubeId]: JSON.stringify(message.data)
+            });
 
             webView.postMessage({
-              type: 'updateCounter',
+              type: 'updateCubes',
               data: {
-                currentCounter: message.data.newCounter,
+                cubes: cubes
               },
             });
             break;
@@ -84,7 +105,7 @@ Devvit.addCustomPostType({
               <text size="medium">Current counter:</text>
               <text size="medium" weight="bold">
                 {' '}
-                {counter ?? ''}
+                {/* {"counter" ?? ''} */}
               </text>
             </hstack>
           </vstack>
