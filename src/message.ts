@@ -1,14 +1,40 @@
 /** Message from Devvit to the web view. */
 export type DevvitMessage =
-  | { type: "initialData"; data: { username: string; cubes?: any } }
-  | { type: "updateCubes"; data: { cubes: any } };
+  | {
+      type: "initialData";
+      data: {
+        username: string;
+        cubes: any;
+      };
+    }
+  | {
+      type: "updateCubes";
+      data: {
+        cubes: any;
+      };
+    }
+  | {
+      type: "cooldownActive";
+      data: {
+        remainingSeconds: number;
+      };
+    }
+  | {
+      type: "cooldownStarted";
+      data: {
+        seconds: number;
+      };
+    }
+  | {
+      type: "allowPlacement";
+    };
 
 /** Message from the web view to Devvit. */
 export type WebViewMessage =
   | { type: "webViewReady" }
   | {
-      type: "saveCubes";
-      data: { x: number; y: number; z: number; color: string; name: string };
+      type: "checkCooldown";
+      data: any;
     };
 
 /** Realtime channel message type */

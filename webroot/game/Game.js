@@ -24,6 +24,7 @@ export class Game {
     this.cubeBuilder = new CubeBuilder();
     this.grid = new Grid();
     this.previewCube = null;
+    this.positionPanel = null;
 
     this.init();
     this.setupLights();
@@ -166,44 +167,58 @@ export class Game {
     });
   }
 
-  placeCubeAt(x, y, z) {
-    // Add placement animation
-    const cube = this.cubeBuilder.createCube(this.gameState.selectedColor);
-    cube.position.set(x, y, z);
-    cube.scale.set(0, 0, 0);
-    this.scene.add(cube);
+  placeCube(x, y, z) {
+    // Store attempt coordinates in world space
+    this.lastAttemptWorldCoords = { x, y, z };
 
-    // Animate the cube scaling up
-    const targetScale = 1;
-    const duration = 300; // milliseconds
-    const startTime = Date.now();
-
-    const animate = () => {
-      const progress = (Date.now() - startTime) / duration;
-      if (progress < 1) {
-        const scale = targetScale * Math.min(1, progress);
-        cube.scale.set(scale, scale, scale);
-        requestAnimationFrame(animate);
-      } else {
-        cube.scale.set(targetScale, targetScale, targetScale);
-      }
-    };
-
-    animate();
-    this.gameState.addCube(cube.position, cube);
-
-    // Convert coordinates back to 1-30 range for storage
-    const storageData = {
+    // Convert to storage coordinates
+    const cubeData = {
       x: Math.round(x + GRID_OFFSET) + 1,
       y: Math.round(y - 0.5) + 1,
       z: Math.round(z + GRID_OFFSET) + 1,
       color: this.gameState.selectedColor,
     };
 
-    console.log("Converting to storage coordinates:", storageData);
+    console.log("Attempting to place cube at world coords:", { x, y, z });
+    console.log("Storage coordinates:", cubeData);
 
-    if (this.onCubePlaced) {
-      this.onCubePlaced(storageData);
+    // Send to server for cooldown check
+    this.onCubePlaced(cubeData);
+  }
+
+  placeCubeAt(x, y, z, isStorageCoords = false, color = null) {
+    let worldX = x;
+    let worldY = y;
+    let worldZ = z;
+
+    // Convert storage coordinates to world coordinates if needed
+    if (isStorageCoords) {
+      worldX = x - 1 - GRID_OFFSET;
+      worldY = y - 1 + 0.5;
+      worldZ = z - 1 - GRID_OFFSET;
+      console.log("Converting storage coords to world:", { x, y, z }, "->", {
+        worldX,
+        worldY,
+        worldZ,
+      });
     }
+
+    console.log("Placing cube at world coordinates:", {
+      worldX,
+      worldY,
+      worldZ,
+    });
+
+    // Use provided color or fallback to selected color
+    const cubeColor = color || this.gameState.selectedColor;
+
+    const cube = this.cubeBuilder.createCube(cubeColor);
+    cube.position.set(worldX, worldY, worldZ);
+    this.scene.add(cube);
+    this.gameState.addCube(cube.position, cube);
+  }
+
+  setPositionPanel(panel) {
+    this.positionPanel = panel;
   }
 }

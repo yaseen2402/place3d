@@ -5,6 +5,8 @@ export const COLORS = {
   YELLOW: "#ffff00",
   WHITE: "#ffffff",
   BLACK: "#000000",
+  BROWN: "#8B4513",
+  PURPLE: "#800080",
 };
 
 export const GRID_SIZE = 30;

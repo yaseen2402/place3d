@@ -31,24 +31,25 @@ class App {
     document.body.appendChild(container);
 
     this.game = new Game(container, (cubeData) => {
-      console.log("Cube placed, sending data to main.tsx:", {
-        ...cubeData,
-        name: username,
-      });
+      console.log("Sending cube placement request:", cubeData);
 
+      // Add username to the cube data
+      cubeData.name = username;
+
+      // Send checkCooldown message with cube data
       postWebViewMessage({
-        type: "saveCubes",
-        data: {
-          ...cubeData,
-          name: username,
-        },
+        type: "checkCooldown",
+        data: cubeData,
       });
     });
 
     // Load existing cubes
     this.game.loadExistingCubes(cubes);
 
-    new PositionPanel(this.game);
+    // Create position panel and store reference
+    const positionPanel = new PositionPanel(this.game);
+    this.game.setPositionPanel(positionPanel);
+
     this.game.animate();
   }
 
@@ -57,56 +58,93 @@ class App {
    * @return {void}
    */
   #onMessage = (ev) => {
-    // Reserved type for messages sent via `context.ui.webView.postMessage`
     if (ev.data.type !== "devvit-message") return;
     const { message } = ev.data.data;
 
     console.log("Received message from main.tsx:", message);
 
     switch (message.type) {
-      case "initialData": {
-        const { username, cubes } = message.data;
-        console.log("Received initial cubes data:", message.data.cubes);
-        this.initGame(username, cubes);
+      case "initialData":
+        this.initGame(message.data.username, message.data.cubes);
         break;
-      }
-      case "updateCubes": {
-        console.log("Received updated cubes data:", message.data);
+
+      case "updateCubes":
+        console.log("Received cube update:", message.data.cubes);
+        // Update cube rendering
         if (this.game) {
+          // Handle as normal update from another user
+          this.showCubeNotification(message.data.cubes);
+
+          // Place the cube using storage coordinates
           const cubeData = message.data.cubes;
-          const position = {
-            x: parseInt(cubeData.x) - 1 - GRID_OFFSET,
-            y: parseInt(cubeData.y) - 1 + 0.5,
-            z: parseInt(cubeData.z) - 1 - GRID_OFFSET,
-          };
-
-          // Show notification
-          this.showCubeNotification(cubeData);
-
-          // First remove any existing cube from the scene directly
-          const existingCube = this.game.gameState.getCube(position);
-          if (existingCube && existingCube.parent) {
-            this.game.scene.remove(existingCube);
-          }
-
-          // Create and add the new cube
-          const cube = this.game.cubeBuilder.createCube(cubeData.color);
-          cube.position.set(position.x, position.y, position.z);
-          this.game.scene.add(cube);
-
-          // Update the game state without trying to remove (since we already did)
-          this.game.gameState.cubes.set(
-            `${position.x},${position.y},${position.z}`,
-            cube
+          this.game.placeCubeAt(
+            parseInt(cubeData.x),
+            parseInt(cubeData.y),
+            parseInt(cubeData.z),
+            true, // these are storage coordinates
+            cubeData.color // Pass the color from the data
           );
-        } else {
-          console.log("Game not initialized");
         }
         break;
-      }
-      default:
-        /** to-do: @satisifes {never} */
-        const _ = message;
+
+      case "cooldownActive":
+        console.log("Cooldown active:", message.data.remainingSeconds);
+        if (this.game && this.game.positionPanel) {
+          // Pass true to indicate this is an active cooldown notification
+          this.game.positionPanel.startCooldown(
+            message.data.remainingSeconds,
+            true
+          );
+
+          // Show the toast directly here
+          const toast = document.getElementById("toast");
+          if (toast) {
+            toast.textContent = `Please wait ${Math.ceil(
+              message.data.remainingSeconds
+            )} seconds before placing another cube`;
+            toast.classList.add("show");
+            setTimeout(() => {
+              toast.classList.remove("show");
+            }, 1500);
+          }
+        }
+        break;
+
+      case "cooldownStarted":
+        console.log("Cooldown started, placing cube");
+        if (this.game && this.game.positionPanel) {
+          // Pass false to indicate this is not an active cooldown notification
+          this.game.positionPanel.startCooldown(message.data.seconds, false);
+
+          // Place the cube, but check for inputs first
+          if (this.game.positionPanel.inputs) {
+            const x =
+              parseInt(this.game.positionPanel.inputs.x.input.value) -
+              GRID_OFFSET -
+              1;
+            const y =
+              parseInt(this.game.positionPanel.inputs.y.input.value) - 1 + 0.5;
+            const z =
+              parseInt(this.game.positionPanel.inputs.z.input.value) -
+              GRID_OFFSET -
+              1;
+
+            // Use the selected color for locally placed cubes
+            this.game.placeCubeAt(
+              x,
+              y,
+              z,
+              false,
+              this.game.gameState.selectedColor
+            );
+          } else {
+            console.error("Position panel inputs not available");
+          }
+        }
+        break;
+
+      case "allowPlacement":
+        console.log("Received 'allowPlacement' - this shouldn't happen");
         break;
     }
   };

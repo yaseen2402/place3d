@@ -5,8 +5,60 @@ export class PositionPanel {
     this.game = game;
     this.isVisible = true;
     this.selectedColorButton = null; // Track selected color button
+    this.confirmButton = null;
+    this.cooldownActive = false;
+    this.inputs = null; // Add this line to store inputs
     this.panel = this.createPanel();
     document.body.appendChild(this.panel);
+  }
+
+  startCooldown(seconds, isActiveNotification = false) {
+    if (!this.confirmButton) return;
+
+    this.cooldownActive = true;
+    this.confirmButton.disabled = true;
+    let remainingTime = seconds;
+
+    const updateButton = () => {
+      this.confirmButton.textContent = `Wait ${remainingTime}s`;
+      this.confirmButton.style.backgroundColor = "#999";
+      this.confirmButton.style.cursor = "not-allowed";
+    };
+
+    updateButton();
+
+    // Only show toast message if this is an active cooldown notification
+    if (isActiveNotification) {
+      this.showToast(
+        `Please wait ${seconds} seconds before placing another cube`
+      );
+    }
+
+    const cooldownInterval = setInterval(() => {
+      remainingTime--;
+      if (remainingTime <= 0) {
+        clearInterval(cooldownInterval);
+        this.cooldownActive = false;
+        this.confirmButton.disabled = false;
+        this.confirmButton.textContent = "Place Cube";
+        this.confirmButton.style.backgroundColor = "#4CAF50";
+        this.confirmButton.style.cursor = "pointer";
+      } else {
+        updateButton();
+      }
+    }, 1000);
+  }
+
+  showToast(message) {
+    const toast = document.getElementById("toast");
+    if (!toast) return;
+
+    toast.textContent = message;
+    toast.classList.add("show");
+
+    setTimeout(() => {
+      toast.classList.remove("show");
+    }, 1500); // Show for 1.5 seconds
   }
 
   createPanel() {
@@ -16,12 +68,12 @@ export class PositionPanel {
       left: 20px;
       bottom: 20px;
       background: rgba(255, 255, 255, 0.95);
-      padding: 8px;
+      padding: 6px;
       padding-top: 30px;
       border-radius: 12px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       font-family: 'Arial', sans-serif;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       width: 200px;
@@ -55,12 +107,10 @@ export class PositionPanel {
     `;
 
     toggleButton.addEventListener("mouseenter", () => {
-      toggleButton.style.transform = "scale(1.05)";
       toggleButton.style.backgroundColor = "#1976D2";
     });
 
     toggleButton.addEventListener("mouseleave", () => {
-      toggleButton.style.transform = "scale(1)";
       toggleButton.style.backgroundColor = "#2196F3";
     });
 
@@ -70,10 +120,6 @@ export class PositionPanel {
         ? "translateY(0)"
         : "translateY(calc(100% - 30px))";
       toggleButton.textContent = this.isVisible ? "Hide" : "Show";
-
-      // Add subtle rotation animation
-      toggleButton.style.transform = "rotate(360deg)";
-      setTimeout(() => (toggleButton.style.transform = "rotate(0deg)"), 300);
     });
 
     container.appendChild(toggleButton);
@@ -82,10 +128,10 @@ export class PositionPanel {
     const colorSection = document.createElement("div");
     colorSection.style.cssText = `
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 8px;
-      padding: 8px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 6px;
+      padding: 6px;
       background: rgba(0, 0, 0, 0.03);
       border-radius: 8px;
     `;
@@ -95,8 +141,8 @@ export class PositionPanel {
       colorButton.style.cssText = `
         width: 100%;
         aspect-ratio: 1;
-        border: 3px solid ${color === "#ffffff" ? "#ddd" : color};
-        border-radius: 8px;
+        border: 2px solid ${color === "#ffffff" ? "#ddd" : color};
+        border-radius: 6px;
         background: ${color};
         cursor: pointer;
         transition: all 0.2s ease;
@@ -147,10 +193,11 @@ export class PositionPanel {
       wrapper.style.cssText = `
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
         background: rgba(0, 0, 0, 0.03);
-        padding: 4px;
+        padding: 6px;
         border-radius: 8px;
+        justify-content: space-between;
       `;
 
       const labelElement = document.createElement("label");
@@ -160,6 +207,10 @@ export class PositionPanel {
         font-weight: bold;
         color: #333;
         width: 30px;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
       `;
 
       const input = document.createElement("input");
@@ -168,7 +219,7 @@ export class PositionPanel {
       input.max = max;
       input.value = "1";
       input.style.cssText = `
-        width: 40px;
+        width: 50px;
         padding: 4px;
         border: 2px solid #e0e0e0;
         border-radius: 6px;
@@ -193,8 +244,8 @@ export class PositionPanel {
         const button = document.createElement("button");
         button.textContent = text;
         button.style.cssText = `
-          width: 24px;
-          height: 24px;
+          width: 28px;
+          height: 28px;
           padding: 0;
           display: flex;
           align-items: center;
@@ -203,7 +254,7 @@ export class PositionPanel {
           border: 2px solid #e0e0e0;
           border-radius: 6px;
           cursor: pointer;
-          font-size: 14px;
+          font-size: 16px;
           line-height: 1;
           transition: all 0.2s ease;
           user-select: none;
@@ -319,7 +370,11 @@ export class PositionPanel {
       z: createInput("Z:", 1, 30),
     };
 
+    // Store inputs as a class property
+    this.inputs = inputs;
+
     const confirmButton = document.createElement("button");
+    this.confirmButton = confirmButton;
     confirmButton.textContent = "Place Cube";
     confirmButton.style.cssText = `
       padding: 10px;
@@ -366,10 +421,16 @@ export class PositionPanel {
     });
 
     confirmButton.addEventListener("click", () => {
+      if (this.cooldownActive) {
+        return; // Prevent action if cooldown is active
+      }
+
       const x = parseInt(inputs.x.input.value) - GRID_OFFSET - 1;
       const y = parseInt(inputs.y.input.value) - 1 + 0.5;
       const z = parseInt(inputs.z.input.value) - GRID_OFFSET - 1;
-      this.game.placeCubeAt(x, y, z);
+
+      // Call game's placeCube method which will handle the cooldown check
+      this.game.placeCube(x, y, z);
     });
 
     container.appendChild(colorSection);
@@ -380,5 +441,12 @@ export class PositionPanel {
 
     updatePreview();
     return container;
+  }
+
+  placeCubeIfAllowed() {
+    const x = parseInt(this.inputs.x.input.value) - GRID_OFFSET - 1;
+    const y = parseInt(this.inputs.y.input.value) - 1 + 0.5;
+    const z = parseInt(this.inputs.z.input.value) - GRID_OFFSET - 1;
+    this.game.placeCubeAt(x, y, z);
   }
 }

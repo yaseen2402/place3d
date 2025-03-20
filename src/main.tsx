@@ -36,6 +36,9 @@ interface CubeData {
 // Key for the Redis hash that stores all cubes
 const CUBES_HASH_KEY = "game_cubes";
 
+// Add this constant at the top with other constants
+const COOLDOWN_SECONDS = 20;
+
 // Add a custom post type to Devvit
 Devvit.addCustomPostType({
   name: "Web View Example",
@@ -88,19 +91,73 @@ Devvit.addCustomPostType({
               });
             }
             break;
-          case "saveCubes":
-            console.log("Saving cubes:", message.data);
-            const cubeId = `${message.data.x}_${message.data.y}_${message.data.z}`;
+          case "checkCooldown": {
+            console.log("Checking cooldown for user:", username);
+            const checkCooldownKey = `user_${username}_cooldown`;
+            console.log("Cooldown key:", checkCooldownKey);
 
-            // Store the cube data in Redis
-            await context.redis.hSet(CUBES_HASH_KEY, {
-              [cubeId]: JSON.stringify(message.data),
-            });
+            // Check if the key exists in Redis
+            try {
+              const cooldownExists = await context.redis.exists(
+                checkCooldownKey
+              );
+              console.log("Cooldown exists?", cooldownExists);
 
-            // Broadcast the update to all clients
-            await context.realtime.send("cube_updates", message.data);
+              if (cooldownExists) {
+                const expiryTimestamp = await context.redis.expireTime(
+                  checkCooldownKey
+                );
+                const remainingSeconds = expiryTimestamp;
+                console.log(
+                  "Cooldown exists, remaining seconds:",
+                  remainingSeconds
+                );
 
+                if (remainingSeconds > 0) {
+                  console.log("Sending cooldownActive response");
+                  webView.postMessage({
+                    type: "cooldownActive",
+                    data: {
+                      remainingSeconds: remainingSeconds,
+                    },
+                  });
+                  return;
+                }
+              }
+
+              console.log("No active cooldown, proceeding with cube placement");
+              // No cooldown active, proceed with cube placement
+              const cubeData = message.data;
+              const cubeId = `${cubeData.x}_${cubeData.y}_${cubeData.z}`;
+
+              console.log("Saving cube data:", cubeData, "with ID:", cubeId);
+              // Store the cube data in Redis
+              await context.redis.hSet(CUBES_HASH_KEY, {
+                [cubeId]: JSON.stringify(cubeData),
+              });
+
+              // Set cooldown
+              console.log("Setting cooldown for user:", username);
+              await context.redis.set(checkCooldownKey, "1");
+              await context.redis.expire(checkCooldownKey, COOLDOWN_SECONDS);
+
+              // Broadcast the update to all clients
+              console.log("Broadcasting update to all clients");
+              await context.realtime.send("cube_updates", cubeData);
+
+              // Send confirmation to the client
+              console.log("Sending cooldownStarted confirmation");
+              webView.postMessage({
+                type: "cooldownStarted",
+                data: {
+                  seconds: COOLDOWN_SECONDS,
+                },
+              });
+            } catch (error) {
+              console.error("Error in cooldown check:", error);
+            }
             break;
+          }
           default:
             throw new Error(`Unknown message type: ${message satisfies never}`);
         }
