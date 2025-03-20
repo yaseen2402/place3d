@@ -8,10 +8,9 @@ import { GRID_OFFSET } from "./game/constants.js";
 class App {
   constructor() {
     this.game = null;
-    // Get references to the HTML elements
-    // this.output = /** @type {HTMLPreElement} */ (document.querySelector('#messageOutput'));
-
-    // this.usernameLabel = /** @type {HTMLSpanElement} */ (document.querySelector('#username'));
+    this.loadingOverlay = document.getElementById("loadingOverlay");
+    this.loadingProgress = document.getElementById("loadingProgress");
+    this.isLoading = true;
 
     console.log("App constructor called");
 
@@ -21,19 +20,39 @@ class App {
     // This event gets called when the web view is loaded
     addEventListener("load", () => {
       console.log("WebView loaded, sending webViewReady message");
+      this.updateLoading("Connecting to server...");
       postWebViewMessage({ type: "webViewReady" });
       console.log("webViewReady message sent");
     });
   }
 
+  // Add these methods to handle loading UI
+  updateLoading(message) {
+    if (this.loadingProgress) {
+      this.loadingProgress.textContent = message;
+    }
+  }
+
+  hideLoading() {
+    if (this.loadingOverlay && this.isLoading) {
+      this.isLoading = false;
+      this.loadingOverlay.classList.add("fade-out");
+      setTimeout(() => {
+        this.loadingOverlay.style.display = "none";
+      }, 500); // Wait for the animation to complete
+    }
+  }
+
   initGame(username, cubes) {
     console.log("Initializing game with username:", username);
     console.log("Initial cubes data:", cubes);
+    this.updateLoading("Setting up 3D environment...");
 
     const container = document.createElement("div");
     document.body.appendChild(container);
 
     console.log("Creating Game instance");
+    this.updateLoading("Initializing 3D renderer...");
     this.game = new Game(container, (cubeData) => {
       console.log("onCubePlaced callback triggered with data:", cubeData);
 
@@ -56,16 +75,86 @@ class App {
       }
     });
 
-    console.log("Loading existing cubes");
-    this.game.loadExistingCubes(cubes);
+    // Process loading in staged approach for smooth loading experience
+    setTimeout(() => {
+      console.log("Loading existing cubes");
+      if (cubes && Object.keys(cubes).length > 0) {
+        this.updateLoading(
+          `Loading ${Object.keys(cubes).length} existing cubes...`
+        );
+      } else {
+        this.updateLoading("Preparing new environment...");
+      }
 
-    console.log("Creating position panel");
-    const positionPanel = new PositionPanel(this.game);
-    this.game.setPositionPanel(positionPanel);
+      this.loadCubesInBatches(cubes, () => {
+        console.log("Creating position panel");
+        this.updateLoading("Setting up controls...");
+        const positionPanel = new PositionPanel(this.game);
+        this.game.setPositionPanel(positionPanel);
 
-    console.log("Starting animation loop");
-    this.game.animate();
-    console.log("Game initialization complete");
+        console.log("Starting animation loop");
+        this.updateLoading("Finalizing...");
+        this.game.animate();
+
+        console.log("Game initialization complete");
+
+        // Hide loading overlay after a short delay for smoother transition
+        setTimeout(() => {
+          this.updateLoading("Ready!");
+          this.hideLoading();
+        }, 300);
+      });
+    }, 500);
+  }
+
+  // Load cubes in batches to prevent UI freezing
+  loadCubesInBatches(cubes, onComplete) {
+    if (!cubes || Object.keys(cubes).length === 0) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const cubeEntries = Object.entries(cubes);
+    const totalCubes = cubeEntries.length;
+    const batchSize = 20;
+    let processedCount = 0;
+
+    const processBatch = (startIdx) => {
+      const endIdx = Math.min(startIdx + batchSize, totalCubes);
+
+      for (let i = startIdx; i < endIdx; i++) {
+        const [_, cubeDataStr] = cubeEntries[i];
+        try {
+          const cubeData = JSON.parse(cubeDataStr);
+          const cube = this.game.cubeBuilder.createCube(cubeData.color);
+          const position = {
+            x: parseInt(cubeData.x) - 1 - GRID_OFFSET,
+            y: parseInt(cubeData.y) - 1 + 0.5,
+            z: parseInt(cubeData.z) - 1 - GRID_OFFSET,
+          };
+
+          cube.position.set(position.x, position.y, position.z);
+          this.game.scene.add(cube);
+          this.game.gameState.addCube(cube.position, cube);
+        } catch (error) {
+          console.error("Error processing cube:", error);
+        }
+      }
+
+      processedCount += endIdx - startIdx;
+      this.updateLoading(`Loading cubes... ${processedCount}/${totalCubes}`);
+
+      if (endIdx < totalCubes) {
+        // Process next batch
+        setTimeout(() => processBatch(endIdx), 0);
+      } else {
+        // All batches processed
+        if (onComplete) onComplete();
+      }
+    };
+
+    // Start processing first batch
+    processBatch(0);
   }
 
   /**
@@ -211,6 +300,12 @@ class App {
   }
 }
 
+// Update the Game class's loadExistingCubes method to do nothing since we'll handle loading with batches
+Game.prototype.loadExistingCubes = function (cubes) {
+  console.log("Skipping default cube loading, will load in batches");
+  return; // Skip default loading
+};
+
 /**
  * Sends a message to the Devvit app.
  * @arg {WebViewMessage} msg
@@ -222,3 +317,5 @@ function postWebViewMessage(msg) {
 
 // Create an instance of the App class
 const app = new App();
+// Make app globally accessible for other components
+window.app = app;

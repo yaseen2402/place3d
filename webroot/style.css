@@ -134,3 +134,53 @@ body {
 .toast.show {
   opacity: 1;
 }
+
+/* Add these styles to your style.css file */
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid transparent;
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: relative;
+}
+
+.spinner:before, .spinner:after {
+  content: "";
+  position: absolute;
+  border: 5px solid transparent;
+  border-radius: 50%;
+}
+
+.spinner:before {
+  top: -15px;
+  left: -15px;
+  right: -15px;
+  bottom: -15px;
+  border-top-color: #03A9F4;
+  animation: spin 2s linear infinite;
+}
+
+.spinner:after {
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  border-top-color: #FFC107;
+  animation: spin 1.5s linear infinite reverse;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.fade-out {
+  animation: fadeOut 0.5s ease forwards;
+}
