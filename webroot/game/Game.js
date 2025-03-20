@@ -168,22 +168,37 @@ export class Game {
   }
 
   placeCube(x, y, z) {
-    // Store attempt coordinates in world space
-    this.lastAttemptWorldCoords = { x, y, z };
+    console.log("Game.placeCube called with values:", { x, y, z });
 
-    // Convert to storage coordinates
-    const cubeData = {
-      x: Math.round(x + GRID_OFFSET) + 1,
-      y: Math.round(y - 0.5) + 1,
-      z: Math.round(z + GRID_OFFSET) + 1,
-      color: this.gameState.selectedColor,
-    };
+    try {
+      // Make sure we have valid numbers with fallbacks
+      const validX = isNaN(x) ? 0 : x;
+      const validY = isNaN(y) ? 0.5 : y;
+      const validZ = isNaN(z) ? 0 : z;
 
-    console.log("Attempting to place cube at world coords:", { x, y, z });
-    console.log("Storage coordinates:", cubeData);
+      console.log("Validated coordinates:", { validX, validY, validZ });
 
-    // Send to server for cooldown check
-    this.onCubePlaced(cubeData);
+      // Store attempt coordinates in world space
+      this.lastAttemptWorldCoords = { x: validX, y: validY, z: validZ };
+
+      // Convert to storage coordinates
+      const cubeData = {
+        x: Math.round(validX + GRID_OFFSET) + 1,
+        y: Math.round(validY - 0.5) + 1,
+        z: Math.round(validZ + GRID_OFFSET) + 1,
+        color: this.gameState.selectedColor,
+      };
+
+      console.log("Converting to storage coordinates:", cubeData);
+      console.log("About to call onCubePlaced callback");
+
+      // Send to server for cooldown check
+      this.onCubePlaced(cubeData);
+
+      console.log("onCubePlaced callback called successfully");
+    } catch (error) {
+      console.error("Error in Game.placeCube:", error);
+    }
   }
 
   placeCubeAt(x, y, z, isStorageCoords = false, color = null) {

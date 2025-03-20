@@ -13,6 +13,8 @@ class App {
 
     // this.usernameLabel = /** @type {HTMLSpanElement} */ (document.querySelector('#username'));
 
+    console.log("App constructor called");
+
     // When the Devvit app sends a message with `postMessage()`, this will be triggered
     addEventListener("message", this.#onMessage);
 
@@ -20,6 +22,7 @@ class App {
     addEventListener("load", () => {
       console.log("WebView loaded, sending webViewReady message");
       postWebViewMessage({ type: "webViewReady" });
+      console.log("webViewReady message sent");
     });
   }
 
@@ -30,27 +33,39 @@ class App {
     const container = document.createElement("div");
     document.body.appendChild(container);
 
+    console.log("Creating Game instance");
     this.game = new Game(container, (cubeData) => {
-      console.log("Sending cube placement request:", cubeData);
+      console.log("onCubePlaced callback triggered with data:", cubeData);
 
-      // Add username to the cube data
-      cubeData.name = username;
+      try {
+        // Add username to the cube data
+        cubeData.name = username;
+        console.log("Added username to cube data:", cubeData);
 
-      // Send checkCooldown message with cube data
-      postWebViewMessage({
-        type: "checkCooldown",
-        data: cubeData,
-      });
+        console.log("About to call postWebViewMessage with checkCooldown");
+
+        // Send checkCooldown message with cube data
+        postWebViewMessage({
+          type: "checkCooldown",
+          data: cubeData,
+        });
+
+        console.log("postWebViewMessage called successfully");
+      } catch (error) {
+        console.error("Error in Game callback:", error);
+      }
     });
 
-    // Load existing cubes
+    console.log("Loading existing cubes");
     this.game.loadExistingCubes(cubes);
 
-    // Create position panel and store reference
+    console.log("Creating position panel");
     const positionPanel = new PositionPanel(this.game);
     this.game.setPositionPanel(positionPanel);
 
+    console.log("Starting animation loop");
     this.game.animate();
+    console.log("Game initialization complete");
   }
 
   /**
@@ -117,28 +132,42 @@ class App {
           this.game.positionPanel.startCooldown(message.data.seconds, false);
 
           // Place the cube, but check for inputs first
-          if (this.game.positionPanel.inputs) {
-            const x =
-              parseInt(this.game.positionPanel.inputs.x.input.value) -
-              GRID_OFFSET -
-              1;
-            const y =
-              parseInt(this.game.positionPanel.inputs.y.input.value) - 1 + 0.5;
-            const z =
-              parseInt(this.game.positionPanel.inputs.z.input.value) -
-              GRID_OFFSET -
-              1;
+          try {
+            if (this.game.positionPanel.inputs) {
+              // Safely extract and parse input values with fallbacks
+              const xInput = this.game.positionPanel.inputs.x.input;
+              const yInput = this.game.positionPanel.inputs.y.input;
+              const zInput = this.game.positionPanel.inputs.z.input;
 
-            // Use the selected color for locally placed cubes
-            this.game.placeCubeAt(
-              x,
-              y,
-              z,
-              false,
-              this.game.gameState.selectedColor
-            );
-          } else {
-            console.error("Position panel inputs not available");
+              // Make sure we have valid numbers
+              const x = parseInt(xInput.value || "1") - GRID_OFFSET - 1;
+              const y = parseInt(yInput.value || "1") - 1 + 0.5;
+              const z = parseInt(zInput.value || "1") - GRID_OFFSET - 1;
+
+              console.log(
+                "Placing cube at position:",
+                { x, y, z },
+                "Raw input values:",
+                {
+                  x: xInput.value,
+                  y: yInput.value,
+                  z: zInput.value,
+                }
+              );
+
+              // Use the selected color for locally placed cubes
+              this.game.placeCubeAt(
+                x,
+                y,
+                z,
+                false,
+                this.game.gameState.selectedColor
+              );
+            } else {
+              console.error("Position panel inputs not available");
+            }
+          } catch (error) {
+            console.error("Error placing cube:", error);
           }
         }
         break;

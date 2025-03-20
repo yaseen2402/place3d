@@ -215,9 +215,19 @@ export class PositionPanel {
 
       const input = document.createElement("input");
       input.type = "number";
+      input.inputMode = "numeric"; // Better for mobile numeric keyboards
       input.min = min;
       input.max = max;
       input.value = "1";
+
+      // Make sure input values are parsed as numbers
+      input.addEventListener("change", () => {
+        // Ensure the value is a number and within range
+        let val = parseInt(input.value) || min;
+        val = Math.max(min, Math.min(max, val));
+        input.value = val.toString();
+      });
+
       input.style.cssText = `
         width: 50px;
         padding: 4px;
@@ -266,7 +276,11 @@ export class PositionPanel {
         let isActive = false;
 
         const startIncrement = (e) => {
-          if (e) e.preventDefault(); // Prevent default behavior
+          if (e) {
+            e.preventDefault(); // Prevent default behavior
+            e.stopPropagation(); // Stop event propagation
+          }
+
           if (isActive) return;
           isActive = true;
 
@@ -284,7 +298,12 @@ export class PositionPanel {
           button.style.backgroundColor = "#e0e0e0";
         };
 
-        const stopIncrement = () => {
+        const stopIncrement = (e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+
           isActive = false;
           if (intervalId) clearInterval(intervalId);
           if (timeoutId) clearTimeout(timeoutId);
@@ -296,16 +315,22 @@ export class PositionPanel {
         };
 
         // Mouse events
-        button.addEventListener("mousedown", startIncrement);
-        button.addEventListener("mouseup", stopIncrement);
-        button.addEventListener("mouseleave", stopIncrement);
+        button.addEventListener("mousedown", startIncrement, {
+          passive: false,
+        });
+        button.addEventListener("mouseup", stopIncrement, { passive: false });
+        button.addEventListener("mouseleave", stopIncrement, {
+          passive: false,
+        });
 
         // Touch events
         button.addEventListener("touchstart", startIncrement, {
           passive: false,
         });
-        button.addEventListener("touchend", stopIncrement);
-        button.addEventListener("touchcancel", stopIncrement);
+        button.addEventListener("touchend", stopIncrement, { passive: false });
+        button.addEventListener("touchcancel", stopIncrement, {
+          passive: false,
+        });
 
         return button;
       };
@@ -421,16 +446,29 @@ export class PositionPanel {
     });
 
     confirmButton.addEventListener("click", () => {
+      console.log("Place cube button clicked");
+
       if (this.cooldownActive) {
+        console.log("Cooldown is active, ignoring click");
         return; // Prevent action if cooldown is active
       }
 
-      const x = parseInt(inputs.x.input.value) - GRID_OFFSET - 1;
-      const y = parseInt(inputs.y.input.value) - 1 + 0.5;
-      const z = parseInt(inputs.z.input.value) - GRID_OFFSET - 1;
+      try {
+        console.log("Getting position values from inputs");
+        const x = parseInt(inputs.x.input.value) - GRID_OFFSET - 1;
+        const y = parseInt(inputs.y.input.value) - 1 + 0.5;
+        const z = parseInt(inputs.z.input.value) - GRID_OFFSET - 1;
 
-      // Call game's placeCube method which will handle the cooldown check
-      this.game.placeCube(x, y, z);
+        console.log("Position values:", { x, y, z });
+        console.log("Calling game.placeCube with position values");
+
+        // Call game's placeCube method which will handle the cooldown check
+        this.game.placeCube(x, y, z);
+
+        console.log("game.placeCube called successfully");
+      } catch (error) {
+        console.error("Error in Place Cube button click handler:", error);
+      }
     });
 
     container.appendChild(colorSection);
