@@ -24,6 +24,9 @@ class App {
       this.postWebViewMessage({ type: "webViewReady" });
       console.log("webViewReady message sent");
     });
+
+    // Add a Set to track recent notifications
+    this.recentNotifications = new Set();
   }
 
   // Add these methods to handle loading UI
@@ -43,25 +46,28 @@ class App {
     }
   }
 
-  initGame(username, initialCubes) {
+  initGame(username, initialCubes, gameState) {
     console.log(
       "initGame called with username:",
       username,
-      "and initial cubes:",
-      initialCubes
+      "initial cubes:",
+      initialCubes,
+      "game state:",
+      gameState
     );
-
     this.username = username;
+    this.gameState = gameState; // Store game state
 
-    // Initialize the game
+    // Initialize the game first
     this.game = new Game({
       onCubePlaced: (cubeData) => {
+        // Prevent cube placement if game has ended
+        if (this.gameState === "ended") {
+          return;
+        }
+
         console.log("onCubePlaced callback triggered with data:", cubeData);
-
-        // Add username to the cube data
         cubeData.name = username;
-
-        // Send message to main.tsx to check cooldown and place cube
         this.postWebViewMessage({
           type: "checkCooldown",
           data: cubeData,
@@ -69,7 +75,7 @@ class App {
       },
     });
 
-    // Process loading in staged approach for smooth loading experience
+    // Process loading in staged approach
     setTimeout(() => {
       console.log("Loading existing cubes");
       if (initialCubes && Object.keys(initialCubes).length > 0) {
@@ -86,13 +92,46 @@ class App {
         const positionPanel = new PositionPanel(this.game);
         this.game.setPositionPanel(positionPanel);
 
+        // Move the game state check here, after position panel is created
+        if (this.gameState === "ended") {
+          // Hide position panel and instructions
+          const positionPanel = document.querySelector(".position-panel");
+          const instructions = document.getElementById("instructions");
+          const toggleInstructions =
+            document.getElementById("toggleInstructions");
+
+          if (positionPanel) positionPanel.style.display = "none";
+          if (instructions) instructions.style.display = "none";
+          if (toggleInstructions) toggleInstructions.style.display = "none";
+
+          // Create and show game ended message
+          const endMessage = document.createElement("div");
+          endMessage.id = "gameEndMessage";
+          endMessage.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        bottom: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background-color: rgba(0, 0, 0, 0.7);
+                        color: white;
+                        padding: 15px 30px;
+                        border-radius: 5px;
+                        text-align: center;
+                        z-index: 1000;
+                    ">
+                        This game has ended. You are viewing the final state.
+                    </div>
+                `;
+          document.body.appendChild(endMessage);
+        }
+
         console.log("Starting animation loop");
         this.updateLoading("Finalizing...");
         this.game.animate();
 
         console.log("Game initialization complete");
 
-        // Hide loading overlay after a short delay for smoother transition
         setTimeout(() => {
           this.updateLoading("Ready!");
           this.hideLoading();
@@ -163,7 +202,11 @@ class App {
 
     switch (message.type) {
       case "initialData":
-        this.initGame(message.data.username, message.data.cubes);
+        this.initGame(
+          message.data.username,
+          message.data.cubes,
+          message.data.gameState // Pass the gameState
+        );
         break;
 
       case "updateCubes":
@@ -262,24 +305,31 @@ class App {
   };
 
   showCubeNotification(cubeData) {
-    const container = document.getElementById("notificationContainer");
+    // Create a unique key for this notification
+    const notificationKey = `${cubeData.name}_${cubeData.x}_${cubeData.y}_${cubeData.z}_${cubeData.color}`;
 
-    if (!container) {
-      console.error("Notification container not found");
+    // If we've shown this exact notification in the last second, ignore it
+    if (this.recentNotifications.has(notificationKey)) {
       return;
     }
 
-    // Create new notification element
+    // Add this notification to our tracking Set
+    this.recentNotifications.add(notificationKey);
+
+    // Remove it from the Set after 1 second
+    setTimeout(() => {
+      this.recentNotifications.delete(notificationKey);
+    }, 1000);
+
+    // Create and show the notification as before
     const notification = document.createElement("div");
     notification.className = "cubeNotification";
-
     notification.innerHTML = `
-      <strong>${cubeData.name}</strong> placed a cube:<br>
-      <span style="display: inline-block; width: 12px; height: 12px; background: ${cubeData.color}; border: 1px solid #333; margin-right: 5px; vertical-align: middle;"></span>
-      at (${cubeData.x}, ${cubeData.y}, ${cubeData.z})
+        ${cubeData.name} placed a cube at (${cubeData.x}, ${cubeData.y}, ${cubeData.z})
+        <div style="display: inline-block; width: 12px; height: 12px; background: ${cubeData.color}; margin-left: 5px; border: 1px solid #000;"></div>
     `;
 
-    // Add to container
+    const container = document.getElementById("notificationContainer");
     container.appendChild(notification);
 
     // Remove notification after delay

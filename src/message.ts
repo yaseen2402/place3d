@@ -3,8 +3,9 @@ export type DevvitMessage =
   | {
       type: "initialData";
       data: {
-        username: string;
+        username: any;
         cubes: any;
+        gameState: any;
       };
     }
   | {

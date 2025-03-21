@@ -8,7 +8,7 @@ Devvit.addMenuItem({
     const { reddit, ui } = context;
     const subreddit = await reddit.getCurrentSubreddit();
     const post = await reddit.submitPost({
-      title: 'Web View Example',
+      title: 'Create you imagination',
       subredditName: subreddit.name,
       // The preview appears while the post loads
       preview: (
