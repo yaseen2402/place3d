@@ -21,37 +21,39 @@ body {
 
 #instructions {
   position: fixed;
+  top: 60px;
   left: 20px;
-  top: 20px;
-  background: rgba(255, 255, 255, 0.9);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
   padding: 15px;
-  border-radius: 8px;
-  font-family: Arial, sans-serif;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
-  min-width: 200px;
+  border-radius: 5px;
+  z-index: 1000;
+  transition: opacity 0.3s ease;
 }
 
 #instructions.hidden {
-  transform: translateX(calc(-100% - 20px));
+  display: none;
+  opacity: 0;
 }
 
 #toggleInstructions {
   position: fixed;
-  left: 20px;
+  opacity: 0.7;
   top: 20px;
-  padding: 8px;
-  background: #333;
-  color: white;
+  left: 20px;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.8);
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
   z-index: 1000;
-  display: none;
+  font-size: 12px;
+  transition: all 0.2s ease;
 }
 
-#instructions.hidden + #toggleInstructions {
-  display: block;
+#toggleInstructions:hover {
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 #instructions h3 {
@@ -183,4 +185,40 @@ body {
 
 .fade-out {
   animation: fadeOut 0.5s ease forwards;
+}
+
+.position-confirm-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+    touch-action: manipulation; /* Improve touch responsiveness */
+    user-select: none; /* Prevent text selection */
+}
+
+.position-confirm-button:active,
+.position-confirm-button.active {
+    background-color: #388E3C;
+    transform: scale(0.98);
+}
+
+/* Make buttons larger on touch screens for better tap targets */
+@media (pointer: coarse) {
+    .position-confirm-button {
+        padding: 16px;
+        font-size: 18px;
+        margin: 8px 0;
+    }
+    
+    /* Increase spacing between elements for easier touch */
+    .position-panel input[type="number"] {
+        padding: 10px;
+        font-size: 16px;
+        margin: 8px 0;
+    }
 }

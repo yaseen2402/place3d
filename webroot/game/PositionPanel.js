@@ -215,19 +215,9 @@ export class PositionPanel {
 
       const input = document.createElement("input");
       input.type = "number";
-      input.inputMode = "numeric"; // Better for mobile numeric keyboards
       input.min = min;
       input.max = max;
       input.value = "1";
-
-      // Make sure input values are parsed as numbers
-      input.addEventListener("change", () => {
-        // Ensure the value is a number and within range
-        let val = parseInt(input.value) || min;
-        val = Math.max(min, Math.min(max, val));
-        input.value = val.toString();
-      });
-
       input.style.cssText = `
         width: 50px;
         padding: 4px;
@@ -238,6 +228,41 @@ export class PositionPanel {
         text-align: center;
         background: white;
       `;
+
+      // Enforce min/max constraints when value changes
+      input.addEventListener("input", () => {
+        let value = parseInt(input.value);
+
+        // Check if the value is a number and enforce limits
+        if (!isNaN(value)) {
+          if (value < min) value = min;
+          if (value > max) value = max;
+
+          // Update the input value if it's different from the constrained value
+          if (parseInt(input.value) !== value) {
+            input.value = value;
+          }
+        }
+
+        // Trigger updatePreview
+        updatePreview();
+      });
+
+      // Also enforce limits when the input loses focus
+      input.addEventListener("blur", () => {
+        let value = parseInt(input.value);
+
+        // If empty or not a number, set to min
+        if (isNaN(value)) {
+          input.value = min;
+        } else {
+          // Enforce min/max
+          if (value < min) input.value = min;
+          if (value > max) input.value = max;
+        }
+
+        updatePreview();
+      });
 
       input.addEventListener("focus", () => {
         input.style.borderColor = "#2196F3";
@@ -398,41 +423,8 @@ export class PositionPanel {
     // Store inputs as a class property
     this.inputs = inputs;
 
-    const confirmButton = document.createElement("button");
+    const confirmButton = this.createConfirmButton();
     this.confirmButton = confirmButton;
-    confirmButton.textContent = "Place Cube";
-    confirmButton.style.cssText = `
-      padding: 10px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-top: 8px;
-      width: 100%;
-      font-weight: bold;
-      font-size: 14px;
-      box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
-    `;
-
-    confirmButton.addEventListener("mouseenter", () => {
-      confirmButton.style.transform = "translateY(-2px)";
-      confirmButton.style.boxShadow = "0 4px 10px rgba(76, 175, 80, 0.4)";
-    });
-
-    confirmButton.addEventListener("mouseleave", () => {
-      confirmButton.style.transform = "translateY(0)";
-      confirmButton.style.boxShadow = "0 2px 5px rgba(76, 175, 80, 0.3)";
-    });
-
-    confirmButton.addEventListener("mousedown", () => {
-      confirmButton.style.transform = "scale(0.98)";
-    });
-
-    confirmButton.addEventListener("mouseup", () => {
-      confirmButton.style.transform = "scale(1)";
-    });
 
     const updatePreview = () => {
       const x = parseInt(inputs.x.input.value) - GRID_OFFSET - 1;
@@ -445,32 +437,6 @@ export class PositionPanel {
       input.addEventListener("input", updatePreview);
     });
 
-    confirmButton.addEventListener("click", () => {
-      console.log("Place cube button clicked");
-
-      if (this.cooldownActive) {
-        console.log("Cooldown is active, ignoring click");
-        return; // Prevent action if cooldown is active
-      }
-
-      try {
-        console.log("Getting position values from inputs");
-        const x = parseInt(inputs.x.input.value) - GRID_OFFSET - 1;
-        const y = parseInt(inputs.y.input.value) - 1 + 0.5;
-        const z = parseInt(inputs.z.input.value) - GRID_OFFSET - 1;
-
-        console.log("Position values:", { x, y, z });
-        console.log("Calling game.placeCube with position values");
-
-        // Call game's placeCube method which will handle the cooldown check
-        this.game.placeCube(x, y, z);
-
-        console.log("game.placeCube called successfully");
-      } catch (error) {
-        console.error("Error in Place Cube button click handler:", error);
-      }
-    });
-
     container.appendChild(colorSection);
     container.appendChild(inputs.x.wrapper);
     container.appendChild(inputs.y.wrapper);
@@ -479,6 +445,103 @@ export class PositionPanel {
 
     updatePreview();
     return container;
+  }
+
+  createConfirmButton() {
+    const button = document.createElement("button");
+    button.className = "position-confirm-button";
+    button.textContent = "Place Cube";
+
+    // Keep track of whether the button is being pressed
+    let isButtonPressed = false;
+
+    // Using pointer events instead of mouse events for better cross-device compatibility
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault(); // Prevent default behavior
+      isButtonPressed = true;
+
+      button.classList.add("active");
+
+      // Check if cooldown is active before proceeding
+      if (this.cooldownActive) {
+        return;
+      }
+
+      // Get input values
+      const x = parseInt(this.inputs.x.input.value);
+      const y = parseInt(this.inputs.y.input.value);
+      const z = parseInt(this.inputs.z.input.value);
+
+      // Check if values are valid before placing cube
+      if (isNaN(x) || isNaN(y) || isNaN(z)) {
+        console.error("Invalid coordinates:", x, y, z);
+        return;
+      }
+
+      // Convert to world coordinates and place cube
+      const worldX = x - GRID_OFFSET - 1;
+      const worldY = y - 1 + 0.5;
+      const worldZ = z - GRID_OFFSET - 1;
+
+      console.log("Placing cube at world coordinates:", worldX, worldY, worldZ);
+      this.game.placeCube(worldX, worldY, worldZ);
+    });
+
+    button.addEventListener("pointerup", (event) => {
+      event.preventDefault();
+      isButtonPressed = false;
+      button.classList.remove("active");
+    });
+
+    button.addEventListener("pointercancel", (event) => {
+      event.preventDefault();
+      isButtonPressed = false;
+      button.classList.remove("active");
+    });
+
+    // Add touch-specific event handlers for devices that might not fully support pointer events
+    button.addEventListener("touchstart", (event) => {
+      event.preventDefault(); // Prevent zooming and other default behaviors
+
+      // Perform the same action as pointerdown if not already triggered
+      if (!isButtonPressed) {
+        isButtonPressed = true;
+        button.classList.add("active");
+
+        if (this.cooldownActive) {
+          return;
+        }
+
+        const x = parseInt(this.inputs.x.input.value);
+        const y = parseInt(this.inputs.y.input.value);
+        const z = parseInt(this.inputs.z.input.value);
+
+        if (isNaN(x) || isNaN(y) || isNaN(z)) {
+          console.error("Invalid coordinates:", x, y, z);
+          return;
+        }
+
+        const worldX = x - GRID_OFFSET - 1;
+        const worldY = y - 1 + 0.5;
+        const worldZ = z - GRID_OFFSET - 1;
+
+        console.log(
+          "Placing cube at world coordinates (touch):",
+          worldX,
+          worldY,
+          worldZ
+        );
+        this.game.placeCube(worldX, worldY, worldZ);
+      }
+    });
+
+    button.addEventListener("touchend", (event) => {
+      event.preventDefault();
+      isButtonPressed = false;
+      button.classList.remove("active");
+    });
+
+    return button;
   }
 
   placeCubeIfAllowed() {

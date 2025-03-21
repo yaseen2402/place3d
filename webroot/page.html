@@ -48,7 +48,6 @@
       ></div>
     </div>
     <div id="instructions" class="hidden">
-      <button id="hideInstructions">✕</button>
       <h3>Controls:</h3>
       <p>🖱️ Right Click + Drag: Rotate camera</p>
       <p>🖱️ Left Click + Drag: Pan camera</p>
@@ -58,13 +57,16 @@
     <pre id="messageOutput"></pre>
 
     <!-- <script type="module" src="index.js"></script> -->
-    <script src="instructionsPanel.js"></script>
     <script type="module" src="script.js"></script>
+    <script src="instructionsPanel.js"></script>
 
     <!-- Replace the existing notification div with this -->
     <div id="notificationContainer"></div>
 
     <!-- Add this somewhere in your body tag -->
     <div id="toast" class="toast">Please wait before placing another cube</div>
+
+    <!-- Add this inside the body tag if it doesn't exist already -->
+    <div id="gameContainer"></div>
   </body>
 </html>

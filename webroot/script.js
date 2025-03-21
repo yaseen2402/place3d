@@ -21,7 +21,7 @@ class App {
     addEventListener("load", () => {
       console.log("WebView loaded, sending webViewReady message");
       this.updateLoading("Connecting to server...");
-      postWebViewMessage({ type: "webViewReady" });
+      this.postWebViewMessage({ type: "webViewReady" });
       console.log("webViewReady message sent");
     });
   }
@@ -43,50 +43,44 @@ class App {
     }
   }
 
-  initGame(username, cubes) {
-    console.log("Initializing game with username:", username);
-    console.log("Initial cubes data:", cubes);
-    this.updateLoading("Setting up 3D environment...");
+  initGame(username, initialCubes) {
+    console.log(
+      "initGame called with username:",
+      username,
+      "and initial cubes:",
+      initialCubes
+    );
 
-    const container = document.createElement("div");
-    document.body.appendChild(container);
+    this.username = username;
 
-    console.log("Creating Game instance");
-    this.updateLoading("Initializing 3D renderer...");
-    this.game = new Game(container, (cubeData) => {
-      console.log("onCubePlaced callback triggered with data:", cubeData);
+    // Initialize the game
+    this.game = new Game({
+      onCubePlaced: (cubeData) => {
+        console.log("onCubePlaced callback triggered with data:", cubeData);
 
-      try {
         // Add username to the cube data
         cubeData.name = username;
-        console.log("Added username to cube data:", cubeData);
 
-        console.log("About to call postWebViewMessage with checkCooldown");
-
-        // Send checkCooldown message with cube data
-        postWebViewMessage({
+        // Send message to main.tsx to check cooldown and place cube
+        this.postWebViewMessage({
           type: "checkCooldown",
           data: cubeData,
         });
-
-        console.log("postWebViewMessage called successfully");
-      } catch (error) {
-        console.error("Error in Game callback:", error);
-      }
+      },
     });
 
     // Process loading in staged approach for smooth loading experience
     setTimeout(() => {
       console.log("Loading existing cubes");
-      if (cubes && Object.keys(cubes).length > 0) {
+      if (initialCubes && Object.keys(initialCubes).length > 0) {
         this.updateLoading(
-          `Loading ${Object.keys(cubes).length} existing cubes...`
+          `Loading ${Object.keys(initialCubes).length} existing cubes...`
         );
       } else {
         this.updateLoading("Preparing new environment...");
       }
 
-      this.loadCubesInBatches(cubes, () => {
+      this.loadCubesInBatches(initialCubes, () => {
         console.log("Creating position panel");
         this.updateLoading("Setting up controls...");
         const positionPanel = new PositionPanel(this.game);
@@ -298,6 +292,15 @@ class App {
       }, 300); // Remove after fade animation
     }, 3000);
   }
+
+  /**
+   * Sends a message to the Devvit app.
+   * @arg {WebViewMessage} msg
+   * @return {void}
+   */
+  postWebViewMessage(msg) {
+    parent.postMessage(msg, "*");
+  }
 }
 
 // Update the Game class's loadExistingCubes method to do nothing since we'll handle loading with batches
@@ -305,15 +308,6 @@ Game.prototype.loadExistingCubes = function (cubes) {
   console.log("Skipping default cube loading, will load in batches");
   return; // Skip default loading
 };
-
-/**
- * Sends a message to the Devvit app.
- * @arg {WebViewMessage} msg
- * @return {void}
- */
-function postWebViewMessage(msg) {
-  parent.postMessage(msg, "*");
-}
 
 // Create an instance of the App class
 const app = new App();

@@ -6,47 +6,98 @@ import { Grid } from "./Grid.js";
 import { GameState } from "./GameState.js";
 
 export class Game {
-  constructor(container, onCubePlaced) {
+  constructor(callbacks = {}) {
+    console.log("Game constructor called");
+
+    // Store callbacks
+    this.callbacks = callbacks || {};
+
+    // Debug DOM structure
+    console.log("Available elements in the DOM:");
+    document.querySelectorAll("*").forEach((el) => {
+      if (el.id)
+        console.log(`Element with ID: ${el.id}, tagName: ${el.tagName}`);
+    });
+
+    // DOM element validation with detailed logging
+    const container = document.getElementById("gameContainer");
+    console.log("gameContainer element:", container);
+
     this.container = container;
-    this.onCubePlaced = onCubePlaced; // Callback for when a cube is placed
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.controls = null;
-    this.raycaster = new THREE.Raycaster();
-    this.mouse = new THREE.Vector2();
+
+    if (!this.container) {
+      console.error(
+        "Game container element not found. Creating fallback container."
+      );
+      // Create a fallback container if not found
+      this.container = document.createElement("div");
+      this.container.id = "gameContainer";
+      document.body.appendChild(this.container);
+      console.log("Created fallback container:", this.container);
+    }
+
+    // Ensure container is properly configured
+    this.container.style.width = "100%";
+    this.container.style.height = "100%";
+    this.container.style.position = "relative";
+
+    // Initialize game components
     this.gameState = new GameState();
     this.cubeBuilder = new CubeBuilder();
-    this.grid = new Grid();
-    this.previewCube = null;
-    this.positionPanel = null;
 
+    // Initialize the game
     this.init();
-    this.setupLights();
-    this.setupControls();
-    this.setupEventListeners();
   }
 
   init() {
-    // Setup renderer
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.container.appendChild(this.renderer.domElement);
+    console.log("Game init called");
 
-    // Adjust camera position for 30x30 grid
-    this.camera.position.set(GRID_SIZE * 0.6, GRID_SIZE * 0.6, GRID_SIZE * 0.6);
-    this.camera.lookAt(0, 0, 0);
+    try {
+      // Create scene
+      this.scene = new THREE.Scene();
 
-    // Add grid to scene
-    this.grid.addToScene(this.scene);
+      // Create camera with safe defaults
+      this.camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      this.camera.position.set(15, 15, 15);
+      this.camera.lookAt(0, 0, 0);
 
-    // Set background
-    this.scene.background = new THREE.Color(0x87ceeb);
+      // Create renderer with validation
+      this.renderer = new THREE.WebGLRenderer({ antialias: true });
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.renderer.setClearColor(0x87ceeb); // Light blue sky color
+
+      // Safely append the renderer to the container
+      console.log("Appending renderer to container:", this.container);
+      if (this.container && typeof this.container.appendChild === "function") {
+        this.container.appendChild(this.renderer.domElement);
+      } else {
+        console.error("Invalid container for renderer:", this.container);
+        // Fallback to appending to the body
+        document.body.appendChild(this.renderer.domElement);
+      }
+
+      // Create grid
+      this.grid = new Grid();
+      this.grid.addToScene(this.scene);
+
+      // Setup controls
+      this.setupControls();
+
+      // Setup lights
+      this.setupLights();
+
+      // Setup window resize handler
+      window.addEventListener("resize", this.onWindowResize.bind(this));
+
+      console.log("Game initialization complete");
+    } catch (error) {
+      console.error("Error during game initialization:", error);
+    }
   }
 
   setupLights() {
@@ -73,10 +124,6 @@ export class Game {
       LEFT: 2, // Make left click pan (2 is the primary pan button)
       MIDDLE: 1, // Keep middle button as is
     };
-  }
-
-  setupEventListeners() {
-    window.addEventListener("resize", this.onWindowResize.bind(this));
   }
 
   onWindowResize() {
@@ -168,36 +215,27 @@ export class Game {
   }
 
   placeCube(x, y, z) {
-    console.log("Game.placeCube called with values:", { x, y, z });
+    console.log("Game.placeCube called with:", x, y, z);
 
-    try {
-      // Make sure we have valid numbers with fallbacks
-      const validX = isNaN(x) ? 0 : x;
-      const validY = isNaN(y) ? 0.5 : y;
-      const validZ = isNaN(z) ? 0 : z;
+    // Store the last placed position
+    this.gameState.lastPlacedPosition = { x, y, z };
 
-      console.log("Validated coordinates:", { validX, validY, validZ });
+    // Convert from world coordinates to storage coordinates
+    const cubeData = {
+      x: Math.round(x + GRID_OFFSET) + 1,
+      y: Math.round(y - 0.5) + 1,
+      z: Math.round(z + GRID_OFFSET) + 1,
+      color: this.gameState.selectedColor,
+    };
 
-      // Store attempt coordinates in world space
-      this.lastAttemptWorldCoords = { x: validX, y: validY, z: validZ };
+    console.log("Converted to storage coordinates:", cubeData);
 
-      // Convert to storage coordinates
-      const cubeData = {
-        x: Math.round(validX + GRID_OFFSET) + 1,
-        y: Math.round(validY - 0.5) + 1,
-        z: Math.round(validZ + GRID_OFFSET) + 1,
-        color: this.gameState.selectedColor,
-      };
-
-      console.log("Converting to storage coordinates:", cubeData);
-      console.log("About to call onCubePlaced callback");
-
-      // Send to server for cooldown check
-      this.onCubePlaced(cubeData);
-
-      console.log("onCubePlaced callback called successfully");
-    } catch (error) {
-      console.error("Error in Game.placeCube:", error);
+    // Callback to the app
+    if (this.callbacks.onCubePlaced) {
+      console.log("Calling onCubePlaced callback");
+      this.callbacks.onCubePlaced(cubeData);
+    } else {
+      console.error("onCubePlaced callback is not defined");
     }
   }
 
@@ -211,18 +249,7 @@ export class Game {
       worldX = x - 1 - GRID_OFFSET;
       worldY = y - 1 + 0.5;
       worldZ = z - 1 - GRID_OFFSET;
-      console.log("Converting storage coords to world:", { x, y, z }, "->", {
-        worldX,
-        worldY,
-        worldZ,
-      });
     }
-
-    console.log("Placing cube at world coordinates:", {
-      worldX,
-      worldY,
-      worldZ,
-    });
 
     // Use provided color or fallback to selected color
     const cubeColor = color || this.gameState.selectedColor;

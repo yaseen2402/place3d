@@ -1,11 +1,19 @@
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("hideInstructions").addEventListener("click", () => {
-    document.getElementById("instructions").classList.add("hidden");
-  });
+  const instructions = document.getElementById("instructions");
+  const toggleButton = document.getElementById("toggleInstructions");
 
-  document
-    .getElementById("toggleInstructions")
-    .addEventListener("click", () => {
-      document.getElementById("instructions").classList.remove("hidden");
-    });
+  if (!instructions || !toggleButton) {
+    console.error("Instructions elements not found");
+    return;
+  }
+
+  let isInstructionsVisible = false;
+
+  toggleButton.addEventListener("click", () => {
+    isInstructionsVisible = !isInstructionsVisible;
+    instructions.classList.toggle("hidden");
+    toggleButton.textContent = isInstructionsVisible
+      ? "Hide Controls"
+      : "Show Controls";
+  });
 });
