@@ -199,7 +199,7 @@ Devvit.addCustomPostType({
           <vstack
             padding="medium"
             width="100%"
-            backgroundColor="rgba(68, 88, 146, 0.5)"
+            backgroundColor="rgba(68, 88, 146, 0.3)"
             cornerRadius="small"
           >
             <hstack alignment="center middle" gap="small" >
@@ -231,17 +231,19 @@ Devvit.addCustomPostType({
                         gap="medium"
                         padding="small"
                         width="100%"
-                        backgroundColor="rgba(255, 77, 0, 0.98)"
+                        backgroundColor="rgba(255, 255, 255, 0.1)"
+                        // backgroundColor="rgba(114, 88, 255, 0.8)"
                         cornerRadius="small"
                       >
                         <text
                           size="medium"
                           weight={index < 3 ? "bold" : "regular"}
-                          color="black"
+                          color="white"
+                          outline="thick"
                         >
                           {index + 1}.
                         </text>
-                        <text size="medium" weight="bold" color="black">
+                        <text size="medium" weight="bold" color="white" outline="thick">
                           {entry.member}
                         </text>
                         <spacer grow />
@@ -286,9 +288,9 @@ Devvit.addCustomPostType({
               </hstack>
             ) : (
               <vstack padding="large" alignment="center middle">
-                <icon name="info" color="#757575" />
+                <icon name="info" color="white" />
                 <spacer size="small" />
-                <text size="medium" alignment="center" color="#757575">
+                <text size="medium" alignment="center" color="white" outline="thin">
                   No scores yet. Be the first to play!
                 </text>
               </vstack>
