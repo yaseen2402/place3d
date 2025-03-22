@@ -37,29 +37,15 @@ Devvit.addCustomPostType({
       return (await context.reddit.getCurrentUsername()) ?? "anon";
     });
     
-    const [cubes, setCubes] = useState(async () => {
-      return (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? [];
-    });
+    // const [cubes, setCubes] = useState(async () => {
+    //   return (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? [];
+    // });
     
-    const [gameState, setGameState] = useState(async () => {
-      return (await context.redis.get(`game_state_${postId}`)) ?? "not_defined";
-    });
+    // const [gameState, setGameState] = useState(async () => {
+    //   return (await context.redis.get(`game_state_${postId}`)) ?? "not_defined";
+    // });
 
-    // const { data: username, loading: usernameLoading } = useAsync(
-    //   async () => {
-    //     return (await context.reddit.getCurrentUsername()) ?? "anon";
-    //   }
-    // );
-
-    // const { data: cubes, loading: cubesLoading } = useAsync(
-    //   async () => (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? []
-    // );
-
-    // const { data: gameState, loading: gameStateLoading } = useAsync(
-    //   async () => {
-    //     return (await context.redis.get(`game_state_${postId}`))?? "not_defined";
-    //   }
-    // );
+    
 
     
 
@@ -100,9 +86,10 @@ Devvit.addCustomPostType({
         switch (message.type) {
           case "webViewReady":
             console.log("webViewReady message received");
-            
-
-              console.log("initialData message sent");
+            const cubes = await context.redis.hGetAll(CUBES_HASH_KEY) ?? [];
+            const gameState =await context.redis.get(`game_state_${postId}`) ?? "not_defined";
+              
+            console.log("initialData message sent");
               webView.postMessage({
                 type: "initialData",
                 data: {

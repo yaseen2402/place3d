@@ -1,4 +1,4 @@
-import { COLORS, GRID_SIZE, GRID_OFFSET } from "./constants.js";
+import { COLORS, GRID_SIZE, GRID_OFFSET, COLOR_PALETTES } from "./constants.js";
 
 export class PositionPanel {
   constructor(game) {
@@ -8,6 +8,8 @@ export class PositionPanel {
     this.confirmButton = null;
     this.cooldownActive = false;
     this.inputs = null; // Add this line to store inputs
+    this.currentPaletteIndex = 0;
+    this.palettes = Object.values(COLOR_PALETTES);
     this.panel = this.createPanel();
     document.body.appendChild(this.panel);
   }
@@ -58,6 +60,131 @@ export class PositionPanel {
     setTimeout(() => {
       toast.classList.remove("show");
     }, 1500); // Show for 1.5 seconds
+  }
+
+  createColorSection() {
+    const colorSection = document.createElement("div");
+    colorSection.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 6px;
+      padding: 6px;
+      background: rgba(0, 0, 0, 0.03);
+      border-radius: 8px;
+    `;
+
+    // Function to update color buttons
+    const updateColorButtons = () => {
+      // Clear existing buttons
+      while (colorSection.firstChild) {
+        colorSection.removeChild(colorSection.firstChild);
+      }
+
+      const currentPalette = this.palettes[this.currentPaletteIndex];
+      const colorEntries = Object.entries(currentPalette.colors);
+
+      // Add first 7 color buttons
+      for (let i = 0; i < Math.min(7, colorEntries.length); i++) {
+        const [name, color] = colorEntries[i];
+        const colorButton = this.createColorButton(name, color);
+        colorSection.appendChild(colorButton);
+      }
+
+      // Add palette switch button in the last position
+      const switchButton = this.createPaletteSwitchButton(updateColorButtons);
+      colorSection.appendChild(switchButton);
+    };
+
+    // Initial render
+    updateColorButtons();
+    return colorSection;
+  }
+
+  createColorButton(name, color) {
+    const button = document.createElement("button");
+    button.style.cssText = `
+      width: 100%;
+      aspect-ratio: 1;
+      border: 2px solid ${color === "#ffffff" ? "#ddd" : color};
+      border-radius: 6px;
+      background: ${color};
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+    `;
+    button.title = name;
+
+    button.onclick = () => {
+      if (this.selectedColorButton) {
+        this.selectedColorButton.style.transform = "scale(1)";
+        this.selectedColorButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.1)";
+      }
+
+      button.style.transform = "scale(1.1)";
+      button.style.boxShadow = `0 4px 10px ${color}80`;
+      this.selectedColorButton = button;
+
+      // Ripple effect
+      const ripple = document.createElement("div");
+      ripple.style.cssText = `
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, ${color}40 0%, transparent 70%);
+        transform: scale(0);
+        top: 0;
+        left: 0;
+        transition: transform 0.4s ease-out;
+      `;
+      button.appendChild(ripple);
+      requestAnimationFrame(() => (ripple.style.transform = "scale(4)"));
+      setTimeout(() => ripple.remove(), 400);
+
+      this.game.setSelectedColor(color);
+    };
+
+    return button;
+  }
+
+  createPaletteSwitchButton(updateCallback) {
+    const button = document.createElement("button");
+    button.style.cssText = `
+      width: 100%;
+      aspect-ratio: 1;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      background: #f0f0f0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    `;
+    button.innerHTML = "→";
+    button.title = "Next Color Palette";
+
+    button.onclick = () => {
+      // Animate button press
+      button.style.transform = "scale(0.9)";
+      setTimeout(() => (button.style.transform = "scale(1)"), 100);
+
+      // Switch to next palette
+      this.currentPaletteIndex =
+        (this.currentPaletteIndex + 1) % this.palettes.length;
+      updateCallback();
+
+      // Show palette name in toast
+      this.showToast(
+        `Color Palette: ${this.palettes[this.currentPaletteIndex].name}`
+      );
+    };
+
+    return button;
   }
 
   createPanel() {
@@ -123,68 +250,9 @@ export class PositionPanel {
 
     container.appendChild(toggleButton);
 
-    // Enhanced Color Selection Section
-    const colorSection = document.createElement("div");
-    colorSection.style.cssText = `
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      margin-bottom: 6px;
-      padding: 6px;
-      background: rgba(0, 0, 0, 0.03);
-      border-radius: 8px;
-    `;
-
-    Object.entries(COLORS).forEach(([name, color]) => {
-      const colorButton = document.createElement("button");
-      colorButton.style.cssText = `
-        width: 100%;
-        aspect-ratio: 1;
-        border: 2px solid ${color === "#ffffff" ? "#ddd" : color};
-        border-radius: 6px;
-        background: ${color};
-        cursor: pointer;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        position: relative;
-        overflow: hidden;
-      `;
-      colorButton.title = name;
-
-      colorButton.onclick = () => {
-        // Remove highlight from previous selection
-        if (this.selectedColorButton) {
-          this.selectedColorButton.style.transform = "scale(1)";
-          this.selectedColorButton.style.boxShadow =
-            "0 2px 5px rgba(0,0,0,0.1)";
-        }
-
-        // Highlight new selection
-        colorButton.style.transform = "scale(1.1)";
-        colorButton.style.boxShadow = `0 4px 10px ${color}80`;
-        this.selectedColorButton = colorButton;
-
-        // Create ripple effect
-        const ripple = document.createElement("div");
-        ripple.style.cssText = `
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          background: radial-gradient(circle, ${color}40 0%, transparent 70%);
-          transform: scale(0);
-          top: 0;
-          left: 0;
-          transition: transform 0.4s ease-out;
-        `;
-        colorButton.appendChild(ripple);
-        requestAnimationFrame(() => (ripple.style.transform = "scale(4)"));
-        setTimeout(() => ripple.remove(), 400);
-
-        this.game.setSelectedColor(color);
-      };
-
-      colorSection.appendChild(colorButton);
-    });
+    // Replace colorSection creation with new method
+    const colorSection = this.createColorSection();
+    container.appendChild(colorSection);
 
     // Enhanced input styling
     const createInput = (label, min, max) => {

@@ -1,5 +1,5 @@
 import * as THREE from "../three/three.module.js";
-import { CUBE_SIZE, COLORS } from "./constants.js";
+import { CUBE_SIZE, COLORS, COLOR_PALETTES } from "./constants.js";
 
 export class CubeBuilder {
   constructor() {
@@ -7,16 +7,18 @@ export class CubeBuilder {
     this.geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
     this.materials = new Map();
 
-    // Pre-create materials for known colors
-    Object.values(COLORS).forEach((color) => {
-      this.materials.set(
-        color,
-        new THREE.MeshPhongMaterial({
-          color: color,
-          shininess: 30,
-          flatShading: true,
-        })
-      );
+    // Pre-create materials for all colors from all palettes
+    Object.values(COLOR_PALETTES).forEach((palette) => {
+      Object.values(palette.colors).forEach((color) => {
+        this.materials.set(
+          color,
+          new THREE.MeshPhongMaterial({
+            color: color,
+            shininess: 30,
+            flatShading: true,
+          })
+        );
+      });
     });
   }
 
