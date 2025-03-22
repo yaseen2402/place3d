@@ -176,7 +176,7 @@ Devvit.addCustomPostType({
 
     // Render the custom post type
     return (
-      <vstack grow padding="small" backgroundColor="rgba(255, 69, 0, 0.8)">
+      <vstack grow padding="small" backgroundColor="rgb(255, 89, 0)">
         <vstack grow alignment="middle center">
           {/* <vstack alignment="start middle"></vstack> */}
               <image
@@ -199,18 +199,22 @@ Devvit.addCustomPostType({
           <vstack
             padding="medium"
             width="100%"
-            backgroundColor="#f6f7f8"
+            backgroundColor="rgba(68, 88, 146, 0.5)"
             cornerRadius="small"
           >
-            <hstack alignment="center middle" gap="small">
+            <hstack alignment="center middle" gap="small" >
+            {/* <zstack backgroundColor="rgba(68, 88, 146, 0.3)" padding="small" cornerRadius="small" > */}
+
               <text
                 size="xlarge"
                 weight="bold"
                 alignment="center"
-                color="black"
+                color="white"
+                outline="thick"
               >
                 Leaderboard
               </text>
+              {/* </zstack> */}
             </hstack>
 
             <spacer size="small" />
@@ -227,21 +231,13 @@ Devvit.addCustomPostType({
                         gap="medium"
                         padding="small"
                         width="100%"
-                        backgroundColor={index === 0 ? "#FFF9C4" : "white"}
+                        backgroundColor="rgba(255, 77, 0, 0.98)"
                         cornerRadius="small"
                       >
                         <text
                           size="medium"
                           weight={index < 3 ? "bold" : "regular"}
-                          color={
-                            index === 0
-                              ? "black"
-                              : index === 1
-                              ? "#757575"
-                              : index === 2
-                              ? "#A52714"
-                              : "black"
-                          }
+                          color="black"
                         >
                           {index + 1}.
                         </text>
@@ -252,7 +248,8 @@ Devvit.addCustomPostType({
                         <text
                           size="medium"
                           weight="bold"
-                          color={index < 3 ? "#FF4500" : "black"}
+                          color="white"
+                          outline="thick"
                         >
                           {entry.score}
                         </text>
