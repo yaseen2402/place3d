@@ -16,24 +16,7 @@ Devvit.configure({
   realtime: true,
 });
 
-function sessionId(): string {
-  let id = "";
-  const asciiZero = "0".charCodeAt(0);
-  for (let i = 0; i < 4; i++) {
-    id += String.fromCharCode(Math.floor(Math.random() * 26) + asciiZero);
-  }
-  return id;
-}
 
-interface CubeData {
-  x: number;
-  y: number;
-  z: number;
-  color: string;
-  username: string;
-}
-
-// Key for the Redis hash that stores all cubes
 
 // Add this constant at the top with other constants
 const COOLDOWN_SECONDS = 20;
@@ -47,23 +30,36 @@ Devvit.addCustomPostType({
     // Load username with `useAsync` hook
 
     const postId = context.postId;
+    const CUBES_HASH_KEY = `game_cubes_${postId}`;
     
+    
+    const [username, setUsername] = useState(async () => {
+      return (await context.reddit.getCurrentUsername()) ?? "anon";
+    });
+    
+    const [cubes, setCubes] = useState(async () => {
+      return (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? [];
+    });
+    
+    const [gameState, setGameState] = useState(async () => {
+      return (await context.redis.get(`game_state_${postId}`)) ?? "not_defined";
+    });
 
-    const { data: username, loading: usernameLoading } = useAsync(
-      async () => {
-        return (await context.reddit.getCurrentUsername()) ?? "anon";
-      }
-    );
+    // const { data: username, loading: usernameLoading } = useAsync(
+    //   async () => {
+    //     return (await context.reddit.getCurrentUsername()) ?? "anon";
+    //   }
+    // );
 
-    const { data: cubes, loading: cubesLoading } = useAsync(
-      async () => (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? []
-    );
+    // const { data: cubes, loading: cubesLoading } = useAsync(
+    //   async () => (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? []
+    // );
 
-    const { data: gameState, loading: gameStateLoading } = useAsync(
-      async () => {
-        return (await context.redis.get(`game_state_${postId}`))?? "not_defined";
-      }
-    );
+    // const { data: gameState, loading: gameStateLoading } = useAsync(
+    //   async () => {
+    //     return (await context.redis.get(`game_state_${postId}`))?? "not_defined";
+    //   }
+    // );
 
     
 
@@ -73,19 +69,12 @@ Devvit.addCustomPostType({
         by: "rank",
       });
     });
-    const CUBES_HASH_KEY = `game_cubes_${postId}`;
-    const mySession = sessionId();
 
     
 
     const channel = useChannel({
       name: "cube_updates",
       onMessage: (cubeData: any) => {
-        // Update the web view with the new cube data
-        // if (cubeData.session === mySession || cubeData.postId !== postId) {
-        //   //Ignore my updates b/c they have already been rendered
-        //   return;
-        // }
         console.log(
           "sending updateCube postMessage from real time onMessage handler to webview",
           cubeData
@@ -113,17 +102,15 @@ Devvit.addCustomPostType({
             console.log("webViewReady message received");
             
 
-            if (!cubesLoading && !usernameLoading && !gameStateLoading) {
               console.log("initialData message sent");
               webView.postMessage({
                 type: "initialData",
                 data: {
-                  username: username,
+                  username: username ,
                   cubes: cubes,
                   gameState: gameState,
                 },
               });
-            }
             break;
           case "checkCooldown": {
             const checkCooldownKey = `user_${username}_cooldown`;
@@ -141,9 +128,8 @@ Devvit.addCustomPostType({
                     checkCooldownKey
                   );
 
-                  const currentTime = Math.floor(Date.now() / 1000);
 
-                  const remainingSeconds = expiryTimestamp - currentTime;
+                  const remainingSeconds = expiryTimestamp;
 
 
                   if (remainingSeconds > 0) {
@@ -242,7 +228,7 @@ Devvit.addCustomPostType({
 
     // Render the custom post type
     return (
-      <vstack grow padding="small" backgroundColor="#ff4500">
+      <vstack grow padding="small" backgroundColor="rgba(255, 69, 0, 0.7)">
         <vstack grow alignment="middle center">
           <vstack alignment="start middle"></vstack>
           <image url="place3d_logo.png" imageWidth={200} imageHeight={200} />
@@ -385,13 +371,9 @@ Devvit.addSchedulerJob({
           <text>Loading...</text>
         </vstack>
       ),
-      // text: 'Welcome to today\'s game! Comment below to participate.',
     });
     
-    // Store the post ID in Redis
-    // await context.redis.set(`current_game_post`, post.id);
     
-    // Set the game state to "active"
     await context.redis.set(`game_state_${post.id}`, 'active');
     
     // Schedule the end of the game (24 hours later)

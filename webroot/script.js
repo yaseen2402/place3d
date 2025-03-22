@@ -254,46 +254,19 @@ class App {
       case "cooldownStarted":
         console.log("Cooldown started, placing cube");
         if (this.game && this.game.positionPanel) {
-          // Pass false to indicate this is not an active cooldown notification
+          // Start the cooldown UI
           this.game.positionPanel.startCooldown(message.data.seconds, false);
 
-          // Place the cube, but check for inputs first
-          try {
-            if (this.game.positionPanel.inputs) {
-              // Safely extract and parse input values with fallbacks
-              const xInput = this.game.positionPanel.inputs.x.input;
-              const yInput = this.game.positionPanel.inputs.y.input;
-              const zInput = this.game.positionPanel.inputs.z.input;
-
-              // Make sure we have valid numbers
-              const x = parseInt(xInput.value || "1") - GRID_OFFSET - 1;
-              const y = parseInt(yInput.value || "1") - 1 + 0.5;
-              const z = parseInt(zInput.value || "1") - GRID_OFFSET - 1;
-
-              console.log(
-                "Placing cube at position:",
-                { x, y, z },
-                "Raw input values:",
-                {
-                  x: xInput.value,
-                  y: yInput.value,
-                  z: zInput.value,
-                }
-              );
-
-              // Use the selected color for locally placed cubes
-              this.game.placeCubeAt(
-                x,
-                y,
-                z,
-                false,
-                this.game.gameState.selectedColor
-              );
-            } else {
-              console.error("Position panel inputs not available");
-            }
-          } catch (error) {
-            console.error("Error placing cube:", error);
+          // Place the cube using the last attempted position
+          const lastPos = this.game.gameState.lastPlacedPosition;
+          if (lastPos) {
+            this.game.placeCubeAt(
+              lastPos.x,
+              lastPos.y,
+              lastPos.z,
+              false,
+              this.game.gameState.selectedColor
+            );
           }
         }
         break;

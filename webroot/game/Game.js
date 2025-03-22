@@ -1,4 +1,4 @@
-import * as THREE from "../three/three.module.js";
+import * as THREE from "../three/three.module.min.js";
 import { OrbitControls } from "../three/controls/OrbitControls.js";
 import { COLORS, GRID_SIZE, CUBE_SIZE, GRID_OFFSET } from "./constants.js";
 import { CubeBuilder } from "./CubeBuilder.js";
@@ -217,8 +217,9 @@ export class Game {
   placeCube(x, y, z) {
     console.log("Game.placeCube called with:", x, y, z);
 
-    // Store the last placed position
-    this.gameState.lastPlacedPosition = { x, y, z };
+    // Store the coordinates for later use
+    const worldCoords = { x, y, z };
+    this.gameState.lastPlacedPosition = worldCoords;
 
     // Convert from world coordinates to storage coordinates
     const cubeData = {
@@ -230,7 +231,7 @@ export class Game {
 
     console.log("Converted to storage coordinates:", cubeData);
 
-    // Callback to the app
+    // Only send to server, don't place cube yet
     if (this.callbacks.onCubePlaced) {
       console.log("Calling onCubePlaced callback");
       this.callbacks.onCubePlaced(cubeData);
@@ -254,6 +255,14 @@ export class Game {
     // Use provided color or fallback to selected color
     const cubeColor = color || this.gameState.selectedColor;
 
+    // Check if there's already a cube at this position and remove it
+    const position = new THREE.Vector3(worldX, worldY, worldZ);
+    const existingCube = this.gameState.getCube(position);
+    if (existingCube && existingCube.parent) {
+      existingCube.parent.remove(existingCube);
+    }
+
+    // Create and place the new cube
     const cube = this.cubeBuilder.createCube(cubeColor);
     cube.position.set(worldX, worldY, worldZ);
     this.scene.add(cube);

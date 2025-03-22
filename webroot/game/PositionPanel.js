@@ -17,17 +17,20 @@ export class PositionPanel {
 
     this.cooldownActive = true;
     this.confirmButton.disabled = true;
+    this.confirmButton.style.opacity = "0.5";
+    this.confirmButton.style.cursor = "not-allowed";
+
     let remainingTime = seconds;
 
     const updateButton = () => {
-      this.confirmButton.textContent = `Wait ${remainingTime}s`;
-      this.confirmButton.style.backgroundColor = "#999";
-      this.confirmButton.style.cursor = "not-allowed";
+      if (this.confirmButton) {
+        this.confirmButton.textContent = `Wait ${remainingTime}s`;
+        this.confirmButton.style.backgroundColor = "#999";
+      }
     };
 
     updateButton();
 
-    // Only show toast message if this is an active cooldown notification
     if (isActiveNotification) {
       this.showToast(
         `Please wait ${seconds} seconds before placing another cube`
@@ -38,11 +41,7 @@ export class PositionPanel {
       remainingTime--;
       if (remainingTime <= 0) {
         clearInterval(cooldownInterval);
-        this.cooldownActive = false;
-        this.confirmButton.disabled = false;
-        this.confirmButton.textContent = "Place Cube";
-        this.confirmButton.style.backgroundColor = "#4CAF50";
-        this.confirmButton.style.cursor = "pointer";
+        this.endCooldown();
       } else {
         updateButton();
       }
@@ -452,22 +451,21 @@ export class PositionPanel {
     button.className = "position-confirm-button";
     button.textContent = "Place Cube";
 
-    // Keep track of whether the button is being pressed
-    let isButtonPressed = false;
+    // Function to handle the cube placement
+    const handlePlacement = () => {
+      console.log("Handle placement called"); // Debug log
 
-    // Using pointer events instead of mouse events for better cross-device compatibility
-    button.addEventListener("pointerdown", (event) => {
-      event.preventDefault(); // Prevent default behavior
-      isButtonPressed = true;
-
-      button.classList.add("active");
-
-      // Check if cooldown is active before proceeding
-      if (this.cooldownActive) {
+      // If already in cooldown or button is disabled, ignore
+      if (this.cooldownActive || button.disabled) {
+        console.log("Button is in cooldown or disabled, ignoring click");
         return;
       }
 
-      // Get input values
+      // Immediately disable the button
+      button.disabled = true;
+      button.style.opacity = "0.5";
+      button.style.cursor = "not-allowed";
+
       const x = parseInt(this.inputs.x.input.value);
       const y = parseInt(this.inputs.y.input.value);
       const z = parseInt(this.inputs.z.input.value);
@@ -475,6 +473,9 @@ export class PositionPanel {
       // Check if values are valid before placing cube
       if (isNaN(x) || isNaN(y) || isNaN(z)) {
         console.error("Invalid coordinates:", x, y, z);
+        button.disabled = false;
+        button.style.opacity = "1";
+        button.style.cursor = "pointer";
         return;
       }
 
@@ -483,65 +484,85 @@ export class PositionPanel {
       const worldY = y - 1 + 0.5;
       const worldZ = z - GRID_OFFSET - 1;
 
-      console.log("Placing cube at world coordinates:", worldX, worldY, worldZ);
-      this.game.placeCube(worldX, worldY, worldZ);
-    });
+      console.log("Attempting to place cube at:", { worldX, worldY, worldZ }); // Debug log
 
-    button.addEventListener("pointerup", (event) => {
-      event.preventDefault();
-      isButtonPressed = false;
-      button.classList.remove("active");
-    });
-
-    button.addEventListener("pointercancel", (event) => {
-      event.preventDefault();
-      isButtonPressed = false;
-      button.classList.remove("active");
-    });
-
-    // Add touch-specific event handlers for devices that might not fully support pointer events
-    button.addEventListener("touchstart", (event) => {
-      event.preventDefault(); // Prevent zooming and other default behaviors
-
-      // Perform the same action as pointerdown if not already triggered
-      if (!isButtonPressed) {
-        isButtonPressed = true;
-        button.classList.add("active");
-
-        if (this.cooldownActive) {
-          return;
+      // Add safety timeout to re-enable button if server doesn't respond
+      setTimeout(() => {
+        if (!this.cooldownActive) {
+          console.log("Safety timeout: Re-enabling button");
+          button.disabled = false;
+          button.style.opacity = "1";
+          button.style.cursor = "pointer";
         }
+      }, 5000); // 5 second safety timeout
 
-        const x = parseInt(this.inputs.x.input.value);
-        const y = parseInt(this.inputs.y.input.value);
-        const z = parseInt(this.inputs.z.input.value);
-
-        if (isNaN(x) || isNaN(y) || isNaN(z)) {
-          console.error("Invalid coordinates:", x, y, z);
-          return;
-        }
-
-        const worldX = x - GRID_OFFSET - 1;
-        const worldY = y - 1 + 0.5;
-        const worldZ = z - GRID_OFFSET - 1;
-
-        console.log(
-          "Placing cube at world coordinates (touch):",
-          worldX,
-          worldY,
-          worldZ
-        );
+      try {
         this.game.placeCube(worldX, worldY, worldZ);
+        console.log("placeCube called successfully"); // Debug log
+      } catch (error) {
+        console.error("Error placing cube:", error);
+        button.disabled = false;
+        button.style.opacity = "1";
+        button.style.cursor = "pointer";
       }
+    };
+
+    // Use a single touchstart/click handler instead of multiple event listeners
+    let touchStarted = false;
+
+    button.addEventListener(
+      "touchstart",
+      (e) => {
+        touchStarted = true;
+        // Don't prevent default here to allow the click event to fire naturally
+        console.log("Touch start detected"); // Debug log
+      },
+      { passive: true }
+    );
+
+    button.addEventListener("click", (e) => {
+      console.log("Click event fired, touchStarted:", touchStarted); // Debug log
+      handlePlacement();
     });
 
-    button.addEventListener("touchend", (event) => {
-      event.preventDefault();
-      isButtonPressed = false;
-      button.classList.remove("active");
-    });
+    // Clean up touch state
+    button.addEventListener(
+      "touchend",
+      () => {
+        touchStarted = false;
+      },
+      { passive: true }
+    );
+
+    // Add mobile-friendly styles
+    button.style.cssText += `
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+        padding: 12px;
+        width: 100%;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        margin-top: 8px;
+        transition: all 0.2s ease;
+    `;
 
     return button;
+  }
+
+  endCooldown() {
+    if (!this.confirmButton) return;
+
+    this.cooldownActive = false;
+    this.confirmButton.disabled = false;
+    this.confirmButton.textContent = "Place Cube";
+    this.confirmButton.style.backgroundColor = "#4CAF50";
+    this.confirmButton.style.opacity = "1";
+    this.confirmButton.style.cursor = "pointer";
   }
 
   placeCubeIfAllowed() {
