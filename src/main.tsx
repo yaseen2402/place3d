@@ -403,7 +403,7 @@ Devvit.addSchedulerJob({
       name: "end_game",
       data: { postId: post.id },
       // runAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
-      runAt: new Date(Date.now() + 4 * 60 * 1000), // 24 hours from now
+      runAt: new Date(Date.now() + 5 * 60 * 1000), 
     });
 
     // Store the end game job ID
@@ -422,9 +422,6 @@ Devvit.addSchedulerJob({
 
     // Update the post to indicate the game has ended
     const post = await context.reddit.getPostById(postId);
-    // await post.edit({
-    //   text: post.title + '\n\n**GAME ENDED**: This game has concluded and no more entries are being accepted.',
-    // });
 
     console.log(`Game ended for post ${postId}`);
   },
@@ -436,8 +433,7 @@ Devvit.addTrigger({
     try {
       // Schedule the job to run daily at 12:00 UTC
       const jobId = await context.scheduler.runJob({
-        // cron: '0 12 * * *', // Run at 12:00 UTC every day
-        cron: "0 19 * * *", // Run at 12:00 UTC every day
+        cron: "15 20 * * *", 
         name: "daily_game_post",
         data: {},
       });
