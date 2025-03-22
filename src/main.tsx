@@ -16,11 +16,8 @@ Devvit.configure({
   realtime: true,
 });
 
-
-
 // Add this constant at the top with other constants
-const COOLDOWN_SECONDS = 20;
-
+const COOLDOWN_SECONDS = 0;
 
 // Add a custom post type to Devvit
 Devvit.addCustomPostType({
@@ -31,23 +28,10 @@ Devvit.addCustomPostType({
 
     const postId = context.postId;
     const CUBES_HASH_KEY = `game_cubes_${postId}`;
-    
-    
+
     const [username, setUsername] = useState(async () => {
       return (await context.reddit.getCurrentUsername()) ?? "anon";
     });
-    
-    // const [cubes, setCubes] = useState(async () => {
-    //   return (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? [];
-    // });
-    
-    // const [gameState, setGameState] = useState(async () => {
-    //   return (await context.redis.get(`game_state_${postId}`)) ?? "not_defined";
-    // });
-
-    
-
-    
 
     const [leaderboard, setLeaderboard] = useState(async () => {
       return await context.redis.zRange(`leaderboard_${postId}`, 0, 5, {
@@ -55,8 +39,6 @@ Devvit.addCustomPostType({
         by: "rank",
       });
     });
-
-    
 
     const channel = useChannel({
       name: "cube_updates",
@@ -80,24 +62,26 @@ Devvit.addCustomPostType({
     const webView = useWebView<WebViewMessage, DevvitMessage>({
       // URL of your web view content
       url: "page.html",
-      
+
       // Handle messages sent from the web view
       async onMessage(message, webView) {
         switch (message.type) {
           case "webViewReady":
             console.log("webViewReady message received");
-            const cubes = await context.redis.hGetAll(CUBES_HASH_KEY) ?? [];
-            const gameState =await context.redis.get(`game_state_${postId}`) ?? "not_defined";
-              
+            const cubes = (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? [];
+            const gameState =
+              (await context.redis.get(`game_state_${postId}`)) ??
+              "not_defined";
+
             console.log("initialData message sent");
-              webView.postMessage({
-                type: "initialData",
-                data: {
-                  username: username ,
-                  cubes: cubes,
-                  gameState: gameState,
-                },
-              });
+            webView.postMessage({
+              type: "initialData",
+              data: {
+                username: username,
+                cubes: cubes,
+                gameState: gameState,
+              },
+            });
             break;
           case "checkCooldown": {
             const checkCooldownKey = `user_${username}_cooldown`;
@@ -115,9 +99,7 @@ Devvit.addCustomPostType({
                     checkCooldownKey
                   );
 
-
                   const remainingSeconds = expiryTimestamp;
-
 
                   if (remainingSeconds > 0) {
                     console.log(
@@ -215,13 +197,15 @@ Devvit.addCustomPostType({
 
     // Render the custom post type
     return (
-      <vstack grow padding="small" backgroundColor="rgba(255, 69, 0, 0.7)">
+      <vstack grow padding="small" backgroundColor="rgba(255, 69, 0, 0.8)">
         <vstack grow alignment="middle center">
-          <vstack alignment="start middle"></vstack>
-          <image url="place3d_logo.png" imageWidth={200} imageHeight={200} />
-
-          {/* Optional spacer between image and button */}
-          <spacer size="small" />
+          {/* <vstack alignment="start middle"></vstack> */}
+              <image
+                url="place3d.png"
+                imageWidth={400}
+                imageHeight={230}
+              />
+          <spacer size="small"/>
           <button
             onPress={() => webView.mount()}
             appearance="primary"
@@ -342,13 +326,12 @@ Devvit.addCustomPostType({
   },
 });
 
-
 Devvit.addSchedulerJob({
-  name: 'daily_game_post',
+  name: "daily_game_post",
   onRun: async (_, context) => {
-    console.log('Creating new daily game post');
+    console.log("Creating new daily game post");
     const subreddit = await context.reddit.getCurrentSubreddit();
-    
+
     // Create the new game post
     const post = await context.reddit.submitPost({
       title: `Daily Game - ${new Date().toLocaleDateString()}`,
@@ -359,18 +342,17 @@ Devvit.addSchedulerJob({
         </vstack>
       ),
     });
-    
-    
-    await context.redis.set(`game_state_${post.id}`, 'active');
-    
+
+    await context.redis.set(`game_state_${post.id}`, "active");
+
     // Schedule the end of the game (24 hours later)
     const endGameJobId = await context.scheduler.runJob({
-      name: 'end_game',
+      name: "end_game",
       data: { postId: post.id },
       // runAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
       runAt: new Date(Date.now() + 4 * 60 * 1000), // 24 hours from now
     });
-    
+
     // Store the end game job ID
     await context.redis.set(`end_game_job:${post.id}`, endGameJobId);
   },
@@ -378,43 +360,41 @@ Devvit.addSchedulerJob({
 
 // Define a job to end the game
 Devvit.addSchedulerJob({
-  name: 'end_game',
+  name: "end_game",
   onRun: async (event, context) => {
     const { postId } = event.data as { postId: string };
-    
+
     // Update the game state to "ended"
-    await context.redis.set(`game_state_${postId}`, 'ended');
-    
+    await context.redis.set(`game_state_${postId}`, "ended");
+
     // Update the post to indicate the game has ended
     const post = await context.reddit.getPostById(postId);
     // await post.edit({
     //   text: post.title + '\n\n**GAME ENDED**: This game has concluded and no more entries are being accepted.',
     // });
-    
+
     console.log(`Game ended for post ${postId}`);
   },
 });
 
-
 Devvit.addTrigger({
-  event: 'AppInstall',
+  event: "AppInstall",
   onEvent: async (_, context) => {
     try {
       // Schedule the job to run daily at 12:00 UTC
       const jobId = await context.scheduler.runJob({
         // cron: '0 12 * * *', // Run at 12:00 UTC every day
-        cron: '35 22 * * *', // Run at 12:00 UTC every day
-        name: 'daily_game_post',
+        cron: "35 22 * * *", // Run at 12:00 UTC every day
+        name: "daily_game_post",
         data: {},
       });
       // Store the job ID for future reference
-      await context.redis.set('dailyGameJobId', jobId);
+      await context.redis.set("dailyGameJobId", jobId);
     } catch (e) {
-      console.log('Error scheduling daily game post:', e);
+      console.log("Error scheduling daily game post:", e);
       throw e;
     }
   },
 });
-
 
 export default Devvit;

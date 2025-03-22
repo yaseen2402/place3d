@@ -10,7 +10,13 @@ export class PositionPanel {
     this.inputs = null; // Add this line to store inputs
     this.currentPaletteIndex = 0;
     this.palettes = Object.values(COLOR_PALETTES);
+
+    // Create panel first
     this.panel = this.createPanel();
+
+    // Now setup keyboard controls after panel is created
+    this.setupKeyboardControls();
+
     document.body.appendChild(this.panel);
   }
 
@@ -511,6 +517,7 @@ export class PositionPanel {
     container.appendChild(confirmButton);
 
     updatePreview();
+
     return container;
   }
 
@@ -638,5 +645,85 @@ export class PositionPanel {
     const y = parseInt(this.inputs.y.input.value) - 1 + 0.5;
     const z = parseInt(this.inputs.z.input.value) - GRID_OFFSET - 1;
     this.game.placeCubeAt(x, y, z);
+  }
+
+  setupKeyboardControls() {
+    // Prevent duplicate event listeners
+    if (this.keyboardControlsActive) return;
+    this.keyboardControlsActive = true;
+
+    document.addEventListener("keydown", (e) => {
+      // Ignore if an input is focused or cooldown is active
+      if (document.activeElement.tagName === "INPUT" || this.cooldownActive) {
+        return;
+      }
+
+      const updateInput = (input, newValue) => {
+        // Ensure value stays within bounds (1-30)
+        newValue = Math.max(1, Math.min(30, newValue));
+        input.value = newValue;
+        input.dispatchEvent(new Event("input")); // Trigger input event to update preview
+      };
+
+      switch (e.key.toLowerCase()) {
+        case "w": // Forward (decrease Z)
+          e.preventDefault();
+          updateInput(
+            this.inputs.z.input,
+            parseInt(this.inputs.z.input.value) - 1
+          );
+          break;
+        case "s": // Backward (increase Z)
+          e.preventDefault();
+          updateInput(
+            this.inputs.z.input,
+            parseInt(this.inputs.z.input.value) + 1
+          );
+          break;
+        case "a": // Left (decrease X)
+          e.preventDefault();
+          updateInput(
+            this.inputs.x.input,
+            parseInt(this.inputs.x.input.value) - 1
+          );
+          break;
+        case "d": // Right (increase X)
+          e.preventDefault();
+          updateInput(
+            this.inputs.x.input,
+            parseInt(this.inputs.x.input.value) + 1
+          );
+          break;
+        case "arrowup": // Up (increase Y)
+          e.preventDefault();
+          updateInput(
+            this.inputs.y.input,
+            parseInt(this.inputs.y.input.value) + 1
+          );
+          break;
+        case "arrowdown": // Down (decrease Y)
+          e.preventDefault();
+          updateInput(
+            this.inputs.y.input,
+            parseInt(this.inputs.y.input.value) - 1
+          );
+          break;
+        case "enter": // Place cube
+          e.preventDefault();
+          if (!this.cooldownActive && !this.confirmButton.disabled) {
+            const x = parseInt(this.inputs.x.input.value);
+            const y = parseInt(this.inputs.y.input.value);
+            const z = parseInt(this.inputs.z.input.value);
+
+            if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
+              const worldX = x - GRID_OFFSET - 1;
+              const worldY = y - 1 + 0.5;
+              const worldZ = z - GRID_OFFSET - 1;
+              this.game.placeCube(worldX, worldY, worldZ);
+            }
+          }
+          break;
+      }
+    });
   }
 }
