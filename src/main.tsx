@@ -43,10 +43,7 @@ Devvit.addCustomPostType({
     const channel = useChannel({
       name: "cube_updates",
       onMessage: (cubeData: any) => {
-        console.log(
-          "sending updateCube postMessage from real time onMessage handler to webview",
-          cubeData
-        );
+        
         webView.postMessage({
           type: "updateCubes",
           data: {
@@ -67,13 +64,11 @@ Devvit.addCustomPostType({
       async onMessage(message, webView) {
         switch (message.type) {
           case "webViewReady":
-            console.log("webViewReady message received");
             const cubes = (await context.redis.hGetAll(CUBES_HASH_KEY)) ?? [];
             const gameState =
               (await context.redis.get(`game_state_${postId}`)) ??
               "not_defined";
 
-            console.log("initialData message sent");
             webView.postMessage({
               type: "initialData",
               data: {
@@ -93,7 +88,6 @@ Devvit.addCustomPostType({
               );
 
               if (cooldownExists) {
-                console.log("Cooldown key exists, getting expiry timestamp");
                 try {
                   const expiryTimestamp = await context.redis.expireTime(
                     checkCooldownKey
@@ -102,19 +96,14 @@ Devvit.addCustomPostType({
                   const remainingSeconds = expiryTimestamp;
 
                   if (remainingSeconds > 0) {
-                    console.log(
-                      "Cooldown is active, sending cooldownActive message"
-                    );
+                    
                     webView.postMessage({
                       type: "cooldownActive",
                       data: {
                         remainingSeconds: remainingSeconds,
                       },
                     });
-                    console.log("cooldownActive message sent");
-                    console.log(
-                      "======= COOLDOWN CHECK ENDED (ACTIVE) ======="
-                    );
+                    
                     return;
                   } else {
                     console.log(
@@ -131,9 +120,7 @@ Devvit.addCustomPostType({
               // No cooldown active, proceed with cube placement
               const cubeData = message.data;
               const cubeId = `${cubeData.x}_${cubeData.y}_${cubeData.z}`;
-              console.log("Generated cube ID:", cubeId);
 
-              console.log("Saving cube data to Redis");
               try {
                 await context.redis.hSet(CUBES_HASH_KEY, {
                   [cubeId]: JSON.stringify(cubeData),
@@ -145,7 +132,6 @@ Devvit.addCustomPostType({
                   1
                 );
 
-                console.log("Cube data saved successfully");
               } catch (error) {
                 console.error("Error saving cube data:", error);
               }
@@ -160,29 +146,22 @@ Devvit.addCustomPostType({
               }
 
               // Broadcast the update to all clients
-              console.log("Broadcasting cube update to all clients");
               try {
                 await context.realtime.send("cube_updates", cubeData);
-                console.log("Update broadcast sent successfully");
               } catch (error) {
                 console.error("Error broadcasting update:", error);
               }
 
               // Send confirmation to the client
-              console.log("Sending cooldownStarted confirmation to client");
               webView.postMessage({
                 type: "cooldownStarted",
                 data: {
                   seconds: COOLDOWN_SECONDS,
                 },
               });
-              console.log("cooldownStarted confirmation sent");
-              console.log(
-                "======= COOLDOWN CHECK ENDED (PLACEMENT SUCCEEDED) ======="
-              );
+              
             } catch (error) {
               console.error("Unexpected error in cooldown check:", error);
-              console.log("======= COOLDOWN CHECK ENDED (ERROR) =======");
             }
             break;
           }
@@ -329,12 +308,86 @@ Devvit.addCustomPostType({
 Devvit.addSchedulerJob({
   name: "daily_game_post",
   onRun: async (_, context) => {
-    console.log("Creating new daily game post");
     const subreddit = await context.reddit.getCurrentSubreddit();
+    const gameTitles = [
+      "Underwater Atlantis",
+      "Desert Oasis",
+      "Volcanic Crater",
+      "Heaven vs Hell",
+      "Lost Civilization",
+      "Alien World",
+      "International Space Station",
+      "Moon Colony",
+      "Sky Castle",
+      "Ancient Ruins",
+      "Futuristic City",
+      "Dystopian Wasteland",
+      "Mecha Battle Arena",
+      "Robot Factory",
+      "Asteroid Mining Colony",
+      "Ancient Rome",
+      "Egyptian Pyramids",
+      "Medieval Kingdom",
+      "Great Wall of China",
+      "Taj Mahal",
+      "Burj Khalifa",
+      "Empire State Building",
+      "Eiffel Tower",
+      "Great Sphinx of Giza",
+      "Pyramids of Giza",
+      "Stonehenge",
+      "Tower of Pisa",
+      "Tower of London",
+      "Titanic Shipwreck",
+      "Mount Olympus",
+      "Sunken Ship Graveyard",
+      "Fire & Ice Dual-World",
+      "Upside-Down",
+      "Giant Chessboard Battlefield",
+      "Meme World",
+      "One-Color Only Mode",
+      "Spaceships Only",
+      "Roman Colosseum",
+      "Petra",
+      "Grand Canyon",
+      "Statue of Liberty",
+      "Golden Gate Bridge",
+      "Niagara Falls",
+      "Santorini",
+      "Mount Fuji",
+      "Buckingham Palace",
+      "Tower of Pisa",
+      "Dubai Frame",
+      "Chichen Itza",
+      "Times Square",
+      "Shibuya Crossing",
+      "Moscow’s Red Square",
+      "Palm Jumeirah",
+      "International Space Station",
+      "Mount Everest",
+      "Great Barrier Reef",
+      "Tokyo Tower",
+      "Burj Al Arab",
+      "Disneyland & Disney World",
+      "AI World",
+      "The London Eye",
+      "Niagara Falls",
+      "The Merlion park loin / mermaid",
+      "Anime World",
+      "Death Star (Star Wars)",
+      "Hogwarts Castle",
+      "Iron Man",
+      "Thanos’ Infinity Gauntlet",
+      "Jurassic Park",
 
+    ];
+    
+    // Randomly select a title from the array
+    const randomTitle = gameTitles[Math.floor(Math.random() * gameTitles.length)];
+    
     // Create the new game post
     const post = await context.reddit.submitPost({
-      title: `Daily Game - ${new Date().toLocaleDateString()}`,
+      title: `Build: ${randomTitle}`,
       subredditName: subreddit.name,
       preview: (
         <vstack>
@@ -384,7 +437,7 @@ Devvit.addTrigger({
       // Schedule the job to run daily at 12:00 UTC
       const jobId = await context.scheduler.runJob({
         // cron: '0 12 * * *', // Run at 12:00 UTC every day
-        cron: "35 22 * * *", // Run at 12:00 UTC every day
+        cron: "0 19 * * *", // Run at 12:00 UTC every day
         name: "daily_game_post",
         data: {},
       });

@@ -12,17 +12,14 @@ class App {
     this.loadingProgress = document.getElementById("loadingProgress");
     this.isLoading = true;
 
-    console.log("App constructor called");
 
     // When the Devvit app sends a message with `postMessage()`, this will be triggered
     addEventListener("message", this.#onMessage);
 
     // This event gets called when the web view is loaded
     addEventListener("load", () => {
-      console.log("WebView loaded, sending webViewReady message");
       this.updateLoading("Connecting to server...");
       this.postWebViewMessage({ type: "webViewReady" });
-      console.log("webViewReady message sent");
     });
 
     // Add a Set to track recent notifications
@@ -47,14 +44,7 @@ class App {
   }
 
   initGame(username, initialCubes, gameState) {
-    console.log(
-      "initGame called with username:",
-      username,
-      "initial cubes:",
-      initialCubes,
-      "game state:",
-      gameState
-    );
+    
     this.username = username;
     this.gameState = gameState; // Store game state
 
@@ -66,7 +56,6 @@ class App {
           return;
         }
 
-        console.log("onCubePlaced callback triggered with data:", cubeData);
         cubeData.name = username;
         this.postWebViewMessage({
           type: "checkCooldown",
@@ -77,7 +66,6 @@ class App {
 
     // Process loading in staged approach
     setTimeout(() => {
-      console.log("Loading existing cubes");
       if (initialCubes && Object.keys(initialCubes).length > 0) {
         this.updateLoading(
           `Loading ${Object.keys(initialCubes).length} existing cubes...`
@@ -87,7 +75,6 @@ class App {
       }
 
       this.loadCubesInBatches(initialCubes, () => {
-        console.log("Creating position panel");
         this.updateLoading("Setting up controls...");
         const positionPanel = new PositionPanel(this.game);
         this.game.setPositionPanel(positionPanel);
@@ -126,11 +113,9 @@ class App {
           document.body.appendChild(endMessage);
         }
 
-        console.log("Starting animation loop");
         this.updateLoading("Finalizing...");
         this.game.animate();
 
-        console.log("Game initialization complete");
 
         setTimeout(() => {
           this.updateLoading("Ready!");
@@ -198,7 +183,6 @@ class App {
     if (ev.data.type !== "devvit-message") return;
     const { message } = ev.data.data;
 
-    console.log("Received message from main.tsx:", message);
 
     switch (message.type) {
       case "initialData":
@@ -210,7 +194,6 @@ class App {
         break;
 
       case "updateCubes":
-        console.log("Received cube update:", message.data.cubes);
         // Update cube rendering
         if (this.game) {
           // Handle as normal update from another user
@@ -229,7 +212,6 @@ class App {
         break;
 
       case "cooldownActive":
-        console.log("Cooldown active:", message.data.remainingSeconds);
         if (this.game && this.game.positionPanel) {
           // Pass true to indicate this is an active cooldown notification
           this.game.positionPanel.startCooldown(
@@ -252,7 +234,6 @@ class App {
         break;
 
       case "cooldownStarted":
-        console.log("Cooldown started, placing cube");
         if (this.game && this.game.positionPanel) {
           // Start the cooldown UI
           this.game.positionPanel.startCooldown(message.data.seconds, false);
@@ -272,7 +253,6 @@ class App {
         break;
 
       case "allowPlacement":
-        console.log("Received 'allowPlacement' - this shouldn't happen");
         break;
     }
   };
@@ -328,7 +308,6 @@ class App {
 
 // Update the Game class's loadExistingCubes method to do nothing since we'll handle loading with batches
 Game.prototype.loadExistingCubes = function (cubes) {
-  console.log("Skipping default cube loading, will load in batches");
   return; // Skip default loading
 };
 
