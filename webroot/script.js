@@ -12,7 +12,6 @@ class App {
     this.loadingProgress = document.getElementById("loadingProgress");
     this.isLoading = true;
 
-
     // When the Devvit app sends a message with `postMessage()`, this will be triggered
     addEventListener("message", this.#onMessage);
 
@@ -44,9 +43,16 @@ class App {
   }
 
   initGame(username, initialCubes, gameState) {
-    
+    console.log(
+      "initGame called with username:",
+      username,
+      "initial cubes:",
+      initialCubes,
+      "game state:",
+      gameState
+    );
     this.username = username;
-    this.gameState = gameState; // Store game state
+    this.gameState = gameState;
 
     // Initialize the game first
     this.game = new Game({
@@ -56,6 +62,7 @@ class App {
           return;
         }
 
+        console.log("onCubePlaced callback triggered with data:", cubeData);
         cubeData.name = username;
         this.postWebViewMessage({
           type: "checkCooldown",
@@ -66,6 +73,7 @@ class App {
 
     // Process loading in staged approach
     setTimeout(() => {
+      console.log("Loading existing cubes");
       if (initialCubes && Object.keys(initialCubes).length > 0) {
         this.updateLoading(
           `Loading ${Object.keys(initialCubes).length} existing cubes...`
@@ -75,19 +83,23 @@ class App {
       }
 
       this.loadCubesInBatches(initialCubes, () => {
-        this.updateLoading("Setting up controls...");
-        const positionPanel = new PositionPanel(this.game);
-        this.game.setPositionPanel(positionPanel);
+        console.log("Checking game state before creating position panel");
 
-        // Move the game state check here, after position panel is created
+        // Only create position panel if game is not ended
+        if (this.gameState !== "ended") {
+          console.log("Creating position panel");
+          this.updateLoading("Setting up controls...");
+          const positionPanel = new PositionPanel(this.game);
+          this.game.setPositionPanel(positionPanel);
+        }
+
+        // Handle ended state
         if (this.gameState === "ended") {
-          // Hide position panel and instructions
-          const positionPanel = document.querySelector(".position-panel");
+          console.log("Game has ended, showing end message");
           const instructions = document.getElementById("instructions");
           const toggleInstructions =
             document.getElementById("toggleInstructions");
 
-          if (positionPanel) positionPanel.style.display = "none";
           if (instructions) instructions.style.display = "none";
           if (toggleInstructions) toggleInstructions.style.display = "none";
 
@@ -113,9 +125,11 @@ class App {
           document.body.appendChild(endMessage);
         }
 
+        console.log("Starting animation loop");
         this.updateLoading("Finalizing...");
         this.game.animate();
 
+        console.log("Game initialization complete");
 
         setTimeout(() => {
           this.updateLoading("Ready!");
@@ -182,7 +196,6 @@ class App {
   #onMessage = (ev) => {
     if (ev.data.type !== "devvit-message") return;
     const { message } = ev.data.data;
-
 
     switch (message.type) {
       case "initialData":
