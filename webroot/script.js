@@ -279,33 +279,43 @@ class App {
       return;
     }
 
-    // Add this notification to our tracking Set
     this.recentNotifications.add(notificationKey);
-
-    // Remove it from the Set after 1 second
     setTimeout(() => {
       this.recentNotifications.delete(notificationKey);
     }, 1000);
 
-    // Create and show the notification as before
     const notification = document.createElement("div");
     notification.className = "cubeNotification";
+    notification.style.animation = "slideIn 0.3s ease-out";
+
     notification.innerHTML = `
-        ${cubeData.name} placed a cube at (${cubeData.x}, ${cubeData.y}, ${cubeData.z})
-        <div style="display: inline-block; width: 12px; height: 12px; background: ${cubeData.color}; margin-left: 5px; border: 1px solid #000;"></div>
+        <span class="notification-username">${
+          cubeData.name
+        }</span> placed a cube at 
+        <span class="notification-coords">(${cubeData.x}, ${cubeData.y}, ${
+      cubeData.z
+    })</span>
+        <div class="cube-color-preview" style="
+            background: ${cubeData.color};
+            ${
+              cubeData.color === "#ffffff"
+                ? "border: 1px solid rgba(0,0,0,0.2);"
+                : ""
+            }
+        "></div>
     `;
 
     const container = document.getElementById("notificationContainer");
     container.appendChild(notification);
 
-    // Remove notification after delay
+    // Remove notification after delay with animation
     setTimeout(() => {
       notification.classList.add("fade-out");
       setTimeout(() => {
         if (notification.parentElement) {
           notification.parentElement.removeChild(notification);
         }
-      }, 300); // Remove after fade animation
+      }, 300);
     }, 3000);
   }
 

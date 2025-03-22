@@ -86,33 +86,102 @@ body {
   position: fixed;
   top: 20px;
   right: 20px;
+  max-width: 300px;
+  max-height: 80vh;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 1000;
-  max-height: 80vh;
+  overflow: hidden;
   pointer-events: none;
 }
 
 .cubeNotification {
-  background: rgba(255, 255, 255, 0.9);
-  padding: 10px;
+  background: linear-gradient(135deg, 
+    rgba(255, 132, 86, 0.8) 0%, 
+    rgba(255, 69, 0, 0.8) 100%
+  );
+  color: white;
+  padding: 12px 16px;
   border-radius: 8px;
-  font-family: Arial, sans-serif;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-  max-width: 250px;
-  opacity: 1;
-  pointer-events: auto;
+  box-shadow: 0 4px 15px rgba(255, 69, 0, 0.2);
   font-size: 14px;
-  line-height: 1.4;
-  margin-left: auto; /* Align to right */
-  transform-origin: right; /* Add this to ensure transform happens from right side */
+  font-weight: 500;
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+.cubeNotification::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    rgba(255,255,255,0) 0%, 
+    rgba(255,255,255,0.5) 50%, 
+    rgba(255,255,255,0) 100%);
+  animation: shimmer 2s infinite;
 }
 
 .cubeNotification.fade-out {
   opacity: 0;
   transform: translateX(100%);
+  margin-top: -100%;
+  padding-top: 0;
+  padding-bottom: 0;
+  height: 0;
+}
+
+.cube-color-preview {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 5px;
+  border-radius: 3px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.2);
+  vertical-align: middle;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.notification-username {
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.notification-coords {
+  font-family: monospace;
+  background: rgba(0,0,0,0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+  margin: 0 2px;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .toast {

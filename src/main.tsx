@@ -17,7 +17,7 @@ Devvit.configure({
 });
 
 // Add this constant at the top with other constants
-const COOLDOWN_SECONDS = 0;
+const COOLDOWN_SECONDS = 5;
 
 // Add a custom post type to Devvit
 Devvit.addCustomPostType({
