@@ -271,10 +271,8 @@ class App {
   };
 
   showCubeNotification(cubeData) {
-    // Create a unique key for this notification
     const notificationKey = `${cubeData.name}_${cubeData.x}_${cubeData.y}_${cubeData.z}_${cubeData.color}`;
 
-    // If we've shown this exact notification in the last second, ignore it
     if (this.recentNotifications.has(notificationKey)) {
       return;
     }
@@ -286,29 +284,28 @@ class App {
 
     const notification = document.createElement("div");
     notification.className = "cubeNotification";
-    notification.style.animation = "slideIn 0.3s ease-out";
+    notification.style.animation = "slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
 
-    notification.innerHTML = `
-        <span class="notification-username">${
-          cubeData.name
-        }</span> placed a cube at 
-        <span class="notification-coords">(${cubeData.x}, ${cubeData.y}, ${
-      cubeData.z
-    })</span>
-        <div class="cube-color-preview" style="
-            background: ${cubeData.color};
-            ${
-              cubeData.color === "#ffffff"
-                ? "border: 1px solid rgba(0,0,0,0.2);"
-                : ""
-            }
-        "></div>
+    // Create color preview div
+    const colorPreview = document.createElement("div");
+    colorPreview.className = "cube-color-preview";
+    colorPreview.style.background = cubeData.color;
+
+    // Create content div
+    const content = document.createElement("div");
+    content.className = "notification-content";
+    content.innerHTML = `
+        <span class="notification-username">${cubeData.name}</span>
+        placed at <span class="notification-coords">${cubeData.x}, ${cubeData.y}, ${cubeData.z}</span>
     `;
+
+    // Assemble notification
+    notification.appendChild(colorPreview);
+    notification.appendChild(content);
 
     const container = document.getElementById("notificationContainer");
     container.appendChild(notification);
 
-    // Remove notification after delay with animation
     setTimeout(() => {
       notification.classList.add("fade-out");
       setTimeout(() => {
