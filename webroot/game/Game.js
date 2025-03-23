@@ -56,6 +56,9 @@ export class Game {
       // Create scene
       this.scene = new THREE.Scene();
 
+      // Remove fog
+      // this.scene.fog = new THREE.Fog(0xd3d3d3, 30, 60);
+
       // Create camera with safe defaults
       this.camera = new THREE.PerspectiveCamera(
         75,
@@ -67,9 +70,14 @@ export class Game {
       this.camera.lookAt(0, 0, 0);
 
       // Create renderer with validation
-      this.renderer = new THREE.WebGLRenderer({ antialias: true });
+      this.renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+      });
       this.renderer.setSize(window.innerWidth, window.innerHeight);
-      this.renderer.setClearColor(0x87ceeb); // Light blue sky color
+      this.renderer.setClearColor(0x87ceeb); // Light blue sky color as default
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
       // Safely append the renderer to the container
       console.log("Appending renderer to container:", this.container);
@@ -101,12 +109,21 @@ export class Game {
   }
 
   setupLights() {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Main ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    directionalLight.position.set(10, 20, 0);
-    this.scene.add(directionalLight);
+    // Remove directional light (sun)
+    // const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    // directionalLight.position.set(10, 20, 10);
+    // directionalLight.castShadow = true;
+    // directionalLight.shadow.camera.near = 0.1;
+    // directionalLight.shadow.camera.far = 100;
+    // directionalLight.shadow.mapSize.width = 2048;
+    // directionalLight.shadow.mapSize.height = 2048;
+    // this.scene.add(directionalLight);
+
+    // Remove rim lights to avoid reflections
   }
 
   setupControls() {

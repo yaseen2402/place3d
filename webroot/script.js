@@ -23,6 +23,15 @@ class App {
 
     // Add a Set to track recent notifications
     this.recentNotifications = new Set();
+
+    // Add background color switcher
+    this.backgroundColors = [
+      "#87ceeb", // Light blue sky (default)
+      "#f0f0f0",
+      "#c0c0c0",
+    ];
+    this.currentBackgroundIndex = 0;
+    this.addBackgroundSwitcher();
   }
 
   // Add these methods to handle loading UI
@@ -39,6 +48,60 @@ class App {
       setTimeout(() => {
         this.loadingOverlay.style.display = "none";
       }, 500); // Wait for the animation to complete
+    }
+  }
+
+  addBackgroundSwitcher() {
+    // Create and style the background switcher button
+    const switchButton = document.createElement("button");
+    switchButton.id = "switchBackgroundButton";
+    switchButton.textContent = "⇄ Background";
+    switchButton.style.position = "absolute";
+    switchButton.style.top = "10px";
+    switchButton.style.left = "10px";
+    switchButton.style.zIndex = "999"; // Set lower than show controls button
+    switchButton.style.padding = "4px 8px";
+    switchButton.style.backgroundColor = "#000000";
+    switchButton.style.opacity = "0.4";
+    switchButton.style.color = "#fff";
+    switchButton.style.border = "none";
+    switchButton.style.borderRadius = "4px";
+    switchButton.style.cursor = "pointer";
+    switchButton.style.fontSize = "12px";
+    switchButton.style.fontFamily = "Arial, sans-serif";
+    switchButton.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.2)";
+    switchButton.style.transition = "opacity 0.3s";
+
+    // Add hover effect
+    switchButton.addEventListener("mouseover", () => {
+      switchButton.style.opacity = "0.7";
+    });
+    switchButton.addEventListener("mouseout", () => {
+      switchButton.style.opacity = "0.4";
+    });
+
+    switchButton.addEventListener("click", () => {
+      this.currentBackgroundIndex =
+        (this.currentBackgroundIndex + 1) % this.backgroundColors.length;
+      const newColor = this.backgroundColors[this.currentBackgroundIndex];
+      this.game.renderer.setClearColor(newColor);
+    });
+
+    // Append the button to the body
+    document.body.appendChild(switchButton);
+
+    // Adjust the show controls button and instructions panel
+    const showControlsButton = document.getElementById("toggleInstructions");
+    const instructionsPanel = document.getElementById("instructions");
+
+    if (showControlsButton) {
+      showControlsButton.style.top = "50px";
+      showControlsButton.style.zIndex = "1000";
+    }
+
+    if (instructionsPanel) {
+      instructionsPanel.style.top = "90px"; // Position below both buttons
+      instructionsPanel.style.zIndex = "998";
     }
   }
 
