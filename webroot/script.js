@@ -58,7 +58,7 @@ class App {
     switchButton.textContent = "⇄ Background";
     switchButton.style.position = "absolute";
     switchButton.style.top = "10px";
-    switchButton.style.left = "10px";
+    switchButton.style.left = "120px"; // Position to the right of show controls button
     switchButton.style.zIndex = "999"; // Set lower than show controls button
     switchButton.style.padding = "4px 8px";
     switchButton.style.backgroundColor = "#000000";
@@ -90,17 +90,19 @@ class App {
     // Append the button to the body
     document.body.appendChild(switchButton);
 
-    // Adjust the show controls button and instructions panel
+    // Move show controls button to top left and adjust related elements
     const showControlsButton = document.getElementById("toggleInstructions");
     const instructionsPanel = document.getElementById("instructions");
 
     if (showControlsButton) {
-      showControlsButton.style.top = "50px";
+      showControlsButton.style.top = "10px";
+      showControlsButton.style.left = "10px";
       showControlsButton.style.zIndex = "1000";
     }
 
     if (instructionsPanel) {
-      instructionsPanel.style.top = "90px"; // Position below both buttons
+      instructionsPanel.style.top = "50px"; // Position below the buttons
+      instructionsPanel.style.left = "10px";
       instructionsPanel.style.zIndex = "998";
     }
   }

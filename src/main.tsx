@@ -345,7 +345,7 @@ Devvit.addSchedulerJob({
       "Giant Chessboard Battlefield",
       "Meme World",
       "One-Color Only Mode",
-      "Spaceships Only",
+      "Spaceships",
       "Roman Colosseum",
       "Petra",
       "Grand Canyon",
