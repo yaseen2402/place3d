@@ -32,6 +32,7 @@ class App {
     ];
     this.currentBackgroundIndex = 0;
     this.addBackgroundSwitcher();
+    this.addNavigationArrows();
   }
 
   // Add these methods to handle loading UI
@@ -107,15 +108,133 @@ class App {
     }
   }
 
+  addNavigationArrows() {
+    // Create container for joystick-style controls
+    const navContainer = document.createElement("div");
+    navContainer.style.cssText = `
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 120px;
+      height: 120px;
+      z-index: 1000;
+    `;
+
+    // Create arrows with relative positioning
+    const createArrow = (symbol, position) => {
+      const arrow = document.createElement("button");
+      arrow.innerHTML = symbol;
+      arrow.style.cssText = `
+        position: absolute;
+        background: rgba(0, 0, 0, 0.4);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+        cursor: pointer;
+        transition: opacity 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        ${position}
+      `;
+      return arrow;
+    };
+
+    // Create and position all arrows
+    const leftArrow = createArrow("⟨", "left: 0; top: 42px;");
+    const rightArrow = createArrow("⟩", "right: 0; top: 42px;");
+    const upArrow = createArrow("⋀", "top: 0; left: 42px;");
+    const downArrow = createArrow("⋁", "bottom: 0; left: 42px;");
+
+    // Add hover effects
+    [leftArrow, rightArrow, upArrow, downArrow].forEach((arrow) => {
+      arrow.addEventListener("mouseover", () => (arrow.style.opacity = "0.7"));
+      arrow.addEventListener("mouseout", () => (arrow.style.opacity = "1"));
+    });
+
+    // State tracking
+    let currentRotation = { horizontal: 0, vertical: 0 };
+
+    // Add click handlers
+    leftArrow.addEventListener("click", () => {
+      currentRotation.horizontal += Math.PI / 2;
+      this.rotateCamera(currentRotation);
+    });
+
+    rightArrow.addEventListener("click", () => {
+      currentRotation.horizontal -= Math.PI / 2;
+      this.rotateCamera(currentRotation);
+    });
+
+    upArrow.addEventListener("click", () => {
+      currentRotation.vertical = Math.min(
+        currentRotation.vertical + Math.PI / 4,
+        Math.PI / 2
+      );
+      this.rotateCamera(currentRotation);
+    });
+
+    downArrow.addEventListener("click", () => {
+      currentRotation.vertical = Math.max(
+        currentRotation.vertical - Math.PI / 4,
+        -Math.PI / 4
+      );
+      this.rotateCamera(currentRotation);
+    });
+
+    // Append all arrows to container
+    navContainer.appendChild(leftArrow);
+    navContainer.appendChild(rightArrow);
+    navContainer.appendChild(upArrow);
+    navContainer.appendChild(downArrow);
+    document.body.appendChild(navContainer);
+  }
+
+  rotateCamera(rotation) {
+    if (!this.game) return;
+
+    const camera = this.game.camera;
+    const controls = this.game.controls;
+
+    // Increase radius for better view
+    const radius = 30; // Changed from 15 to 30 for a more zoomed out view
+    const targetX = radius * Math.cos(rotation.vertical) * Math.cos(rotation.horizontal);
+    const targetZ = radius * Math.cos(rotation.vertical) * Math.sin(rotation.horizontal);
+    const targetY = radius * Math.sin(rotation.vertical) + 20; // Increased base height from 15 to 20
+
+    // Animate camera movement
+    const duration = 1000;
+    const startPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
+    const startTime = Date.now();
+
+    const animate = () => {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+
+      // Easing function
+      const eased = progress < 0.5
+        ? 4 * progress ** 3
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+      camera.position.x = startPos.x + (targetX - startPos.x) * eased;
+      camera.position.y = startPos.y + (targetY - startPos.y) * eased;
+      camera.position.z = startPos.z + (targetZ - startPos.z) * eased;
+
+      camera.lookAt(0, 0, 0);
+      controls.target.set(0, 0, 0);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    animate();
+  }
+
   initGame(username, initialCubes, gameState) {
-    console.log(
-      "initGame called with username:",
-      username,
-      "initial cubes:",
-      initialCubes,
-      "game state:",
-      gameState
-    );
     this.username = username;
     this.gameState = gameState;
 
@@ -127,7 +246,6 @@ class App {
           return;
         }
 
-        console.log("onCubePlaced callback triggered with data:", cubeData);
         cubeData.name = username;
         this.postWebViewMessage({
           type: "checkCooldown",
@@ -138,7 +256,6 @@ class App {
 
     // Process loading in staged approach
     setTimeout(() => {
-      console.log("Loading existing cubes");
       if (initialCubes && Object.keys(initialCubes).length > 0) {
         this.updateLoading(
           `Loading ${Object.keys(initialCubes).length} existing cubes...`
@@ -148,11 +265,8 @@ class App {
       }
 
       this.loadCubesInBatches(initialCubes, () => {
-        console.log("Checking game state before creating position panel");
-
         // Only create position panel if game is not ended
         if (this.gameState !== "ended") {
-          console.log("Creating position panel");
           this.updateLoading("Setting up controls...");
           const positionPanel = new PositionPanel(this.game);
           this.game.setPositionPanel(positionPanel);
@@ -160,13 +274,12 @@ class App {
 
         // Handle ended state
         if (this.gameState === "ended") {
-          console.log("Game has ended, showing end message");
           const instructions = document.getElementById("instructions");
           const toggleInstructions =
             document.getElementById("toggleInstructions");
 
-          if (instructions) instructions.style.display = "none";
-          if (toggleInstructions) toggleInstructions.style.display = "none";
+          // if (instructions) instructions.style.display = "none";
+          // if (toggleInstructions) toggleInstructions.style.display = "none";
 
           // Create and show game ended message
           const endMessage = document.createElement("div");
@@ -190,11 +303,8 @@ class App {
           document.body.appendChild(endMessage);
         }
 
-        console.log("Starting animation loop");
         this.updateLoading("Finalizing...");
         this.game.animate();
-
-        console.log("Game initialization complete");
 
         setTimeout(() => {
           this.updateLoading("Ready!");

@@ -17,7 +17,7 @@ Devvit.configure({
 });
 
 // Add this constant at the top with other constants
-const COOLDOWN_SECONDS = 5;
+const COOLDOWN_SECONDS = 20;
 
 // Add a custom post type to Devvit
 Devvit.addCustomPostType({
@@ -43,7 +43,6 @@ Devvit.addCustomPostType({
     const channel = useChannel({
       name: "cube_updates",
       onMessage: (cubeData: any) => {
-        
         webView.postMessage({
           type: "updateCubes",
           data: {
@@ -96,14 +95,13 @@ Devvit.addCustomPostType({
                   const remainingSeconds = expiryTimestamp;
 
                   if (remainingSeconds > 0) {
-                    
                     webView.postMessage({
                       type: "cooldownActive",
                       data: {
                         remainingSeconds: remainingSeconds,
                       },
                     });
-                    
+
                     return;
                   } else {
                     console.log(
@@ -113,9 +111,10 @@ Devvit.addCustomPostType({
                 } catch (error) {
                   console.error("Error getting expiry time:", error);
                 }
-              } else {
-                console.log("No cooldown found for this user");
               }
+              //  else {
+              //   console.log("No cooldown found for this user");
+              // }
 
               // No cooldown active, proceed with cube placement
               const cubeData = message.data;
@@ -131,7 +130,6 @@ Devvit.addCustomPostType({
                   username ?? "anon",
                   1
                 );
-
               } catch (error) {
                 console.error("Error saving cube data:", error);
               }
@@ -159,7 +157,6 @@ Devvit.addCustomPostType({
                   seconds: COOLDOWN_SECONDS,
                 },
               });
-              
             } catch (error) {
               console.error("Unexpected error in cooldown check:", error);
             }
@@ -179,12 +176,8 @@ Devvit.addCustomPostType({
       <vstack grow padding="small" backgroundColor="rgb(255, 89, 0)">
         <vstack grow alignment="middle center">
           {/* <vstack alignment="start middle"></vstack> */}
-              <image
-                url="place3d.png"
-                imageWidth={400}
-                imageHeight={230}
-              />
-          <spacer size="small"/>
+          <image url="place3d.png" imageWidth={400} imageHeight={230} />
+          <spacer size="small" />
           <button
             onPress={() => webView.mount()}
             appearance="primary"
@@ -202,8 +195,8 @@ Devvit.addCustomPostType({
             backgroundColor="rgba(68, 88, 146, 0.3)"
             cornerRadius="small"
           >
-            <hstack alignment="center middle" gap="small" >
-            {/* <zstack backgroundColor="rgba(68, 88, 146, 0.3)" padding="small" cornerRadius="small" > */}
+            <hstack alignment="center middle" gap="small">
+              {/* <zstack backgroundColor="rgba(68, 88, 146, 0.3)" padding="small" cornerRadius="small" > */}
 
               <text
                 size="xlarge"
@@ -243,7 +236,12 @@ Devvit.addCustomPostType({
                         >
                           {index + 1}.
                         </text>
-                        <text size="medium" weight="bold" color="white" outline="thick">
+                        <text
+                          size="medium"
+                          weight="bold"
+                          color="white"
+                          outline="thick"
+                        >
                           {entry.member}
                         </text>
                         <spacer grow />
@@ -269,17 +267,32 @@ Devvit.addCustomPostType({
                         gap="medium"
                         padding="small"
                         width="100%"
-                        backgroundColor="white"
+                        backgroundColor="rgba(255, 255, 255, 0.1)"
                         cornerRadius="small"
                       >
-                        <text size="medium" weight="regular" color="black">
+                        <text
+                          size="medium"
+                          weight="bold"
+                          color="white"
+                          outline="thick"
+                        >
                           {index + 4}.
                         </text>
-                        <text size="medium" weight="bold" color="black">
+                        <text
+                          size="medium"
+                          weight="bold"
+                          color="white"
+                          outline="thick"
+                        >
                           {entry.member}
                         </text>
                         <spacer grow />
-                        <text size="medium" weight="bold" color="black">
+                        <text
+                          size="medium"
+                          weight="bold"
+                          color="white"
+                          outline="thick"
+                        >
                           {entry.score}
                         </text>
                       </hstack>
@@ -290,7 +303,12 @@ Devvit.addCustomPostType({
               <vstack padding="large" alignment="center middle">
                 <icon name="info" color="white" />
                 <spacer size="small" />
-                <text size="medium" alignment="center" color="white" outline="thin">
+                <text
+                  size="medium"
+                  alignment="center"
+                  color="white"
+                  outline="thin"
+                >
                   No scores yet. Be the first to play!
                 </text>
               </vstack>
@@ -331,14 +349,12 @@ Devvit.addSchedulerJob({
       "Taj Mahal",
       "Burj Khalifa",
       "Empire State Building",
-      "Eiffel Tower",
       "Great Sphinx of Giza",
       "Pyramids of Giza",
       "Stonehenge",
       "Tower of Pisa",
       "Tower of London",
       "Titanic Shipwreck",
-      "Mount Olympus",
       "Sunken Ship Graveyard",
       "Fire & Ice Dual-World",
       "Upside-Down",
@@ -369,8 +385,6 @@ Devvit.addSchedulerJob({
       "Burj Al Arab",
       "Disneyland & Disney World",
       "AI World",
-      "The London Eye",
-      "Niagara Falls",
       "The Merlion park loin / mermaid",
       "Anime World",
       "Death Star (Star Wars)",
@@ -378,19 +392,28 @@ Devvit.addSchedulerJob({
       "Iron Man",
       "Thanos’ Infinity Gauntlet",
       "Jurassic Park",
-
+      "Yggdrasil",
     ];
-    
+
     // Randomly select a title from the array
-    const randomTitle = gameTitles[Math.floor(Math.random() * gameTitles.length)];
-    
+    const randomTitle =
+      gameTitles[Math.floor(Math.random() * gameTitles.length)];
+
     // Create the new game post
     const post = await context.reddit.submitPost({
+      // title: `Build: Yggdrasil`,
       title: `Build: ${randomTitle}`,
       subredditName: subreddit.name,
       preview: (
-        <vstack>
-          <text>Loading...</text>
+        <vstack
+          backgroundColor="rgb(255, 89, 0)"
+          alignment="center middle"
+          height="100%"
+          width="100%"
+        >
+          <text size="medium" alignment="center" color="white" outline="thin">
+            Loading...
+          </text>
         </vstack>
       ),
     });
@@ -401,8 +424,7 @@ Devvit.addSchedulerJob({
     const endGameJobId = await context.scheduler.runJob({
       name: "end_game",
       data: { postId: post.id },
-      // runAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
-      runAt: new Date(Date.now() + 5 * 60 * 1000), 
+      runAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
     });
 
     // Store the end game job ID
@@ -422,22 +444,33 @@ Devvit.addSchedulerJob({
     // Update the post to indicate the game has ended
     const post = await context.reddit.getPostById(postId);
 
-    console.log(`Game ended for post ${postId}`);
   },
 });
 
 Devvit.addTrigger({
-  event: "AppInstall",
+  events: ["AppInstall", "AppUpgrade"],
   onEvent: async (_, context) => {
     try {
       // Schedule the job to run daily at 12:00 UTC
+      const existingJobs = await context.scheduler.listJobs();
+      if (existingJobs && existingJobs.length) {
+        for (const job of existingJobs) {
+          await context.scheduler.cancelJob(job.id);
+        }
+        console.log(`${existingJobs.length} existing jobs cancelled`);
+      } else {
+        console.log(`No existing jobs`);
+      }
+
       const jobId = await context.scheduler.runJob({
-        cron: "15 20 * * *", 
+        cron: "30 17 * * *",
         name: "daily_game_post",
         data: {},
       });
       // Store the job ID for future reference
       await context.redis.set("dailyGameJobId", jobId);
+
+      const jobs = await context.scheduler.listJobs();
     } catch (e) {
       console.log("Error scheduling daily game post:", e);
       throw e;

@@ -134,12 +134,18 @@ export class Game {
     this.controls.maxDistance = 100;
     this.controls.rotateSpeed = 1.5;
     this.controls.panSpeed = 2.0;
+    this.controls.screenSpacePanning = true; // Enable screen space panning
+    this.controls.zoomToCursor = true; // Make zoom relative to cursor position
+
+    // Maintain camera direction during zoom
+    this.controls.enableZoom = true;
+    this.controls.zoomSpeed = 1.0;
 
     // Swap mouse buttons
     this.controls.mouseButtons = {
-      RIGHT: 0, // Make right click rotate (0 is the primary rotation button)
-      LEFT: 2, // Make left click pan (2 is the primary pan button)
-      MIDDLE: 1, // Keep middle button as is
+      RIGHT: 0,
+      LEFT: 2,
+      MIDDLE: 1,
     };
   }
 
