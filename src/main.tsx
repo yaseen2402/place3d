@@ -399,6 +399,9 @@ Devvit.addSchedulerJob({
     const randomTitle =
       gameTitles[Math.floor(Math.random() * gameTitles.length)];
 
+    // const pinnedPosts = await context.reddit.getPinnedPosts({
+    //   subredditName: subreddit.name,
+    // });
     // Create the new game post
     const post = await context.reddit.submitPost({
       // title: `Build: Yggdrasil`,

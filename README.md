@@ -10,6 +10,10 @@ The community collaborates to construct the theme from scratch. Once the 24-hour
 
 ## How to Participate
 
+Look for the most recent post in the subreddit which will be the active game or you can create a new game post for testing.
+
+Press start.
+
 ### Navigation:
 - **Rotate View**: Right-click and drag
 - **Pan Around**: Left-click and drag

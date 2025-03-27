@@ -201,13 +201,19 @@ class App {
 
     // Increase radius for better view
     const radius = 30; // Changed from 15 to 30 for a more zoomed out view
-    const targetX = radius * Math.cos(rotation.vertical) * Math.cos(rotation.horizontal);
-    const targetZ = radius * Math.cos(rotation.vertical) * Math.sin(rotation.horizontal);
+    const targetX =
+      radius * Math.cos(rotation.vertical) * Math.cos(rotation.horizontal);
+    const targetZ =
+      radius * Math.cos(rotation.vertical) * Math.sin(rotation.horizontal);
     const targetY = radius * Math.sin(rotation.vertical) + 20; // Increased base height from 15 to 20
 
     // Animate camera movement
     const duration = 1000;
-    const startPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
+    const startPos = {
+      x: camera.position.x,
+      y: camera.position.y,
+      z: camera.position.z,
+    };
     const startTime = Date.now();
 
     const animate = () => {
@@ -215,9 +221,10 @@ class App {
       const progress = Math.min((now - startTime) / duration, 1);
 
       // Easing function
-      const eased = progress < 0.5
-        ? 4 * progress ** 3
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      const eased =
+        progress < 0.5
+          ? 4 * progress ** 3
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
       camera.position.x = startPos.x + (targetX - startPos.x) * eased;
       camera.position.y = startPos.y + (targetY - startPos.y) * eased;
